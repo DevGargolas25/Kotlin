@@ -47,7 +47,12 @@ fun HomeScreen(
         Spacer(Modifier.height(16.dp))
         HomeJoinBrigadeCard(onLearnMore)
         Spacer(Modifier.height(16.dp))
-        HomeLearnOnYourOwnSection(state.videos, onVideoClick)
+        HomeLearnOnYourOwnSection(
+            videos = state.videos,
+            onVideoClick = onVideoClick,
+            onViewAllClick = { /* TODO: navigate later */ }
+        )
+
     }
 }
 
