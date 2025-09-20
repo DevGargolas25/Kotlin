@@ -7,8 +7,9 @@ data class VideoUi(
     val tags: List<String>,      // e.g. ["Emergency", "Safety"]
     val author: String,          // e.g. "Student Brigade"
     val viewsText: String,       // e.g. "2.3k views"
-    val ageText: String          // e.g. "2 weeks ago"
-)
+    val ageText: String,          // e.g. "2 weeks ago"
+    val description: String
+    )
 
 // mm:ss
 fun Int.formatAsDuration(): String {
@@ -26,7 +27,8 @@ fun mockVideos(): List<VideoUi> = listOf(
         tags = listOf("Emergency", "Safety"),
         author = "Student Brigade",
         viewsText = "2.3k views",
-        ageText = "2 weeks ago"
+        ageText = "2 weeks ago",
+        description = "2 weeks ago"
     ),
     VideoUi(//update
         id = "2",
@@ -35,7 +37,8 @@ fun mockVideos(): List<VideoUi> = listOf(
         tags = listOf("Medical", "Training"),
         author = "Student Brigade",
         viewsText = "1.8k views",
-        ageText = "1 month ago"
+        ageText = "1 month ago",
+        description = "2 weeks ago"
     ),
     VideoUi(
         id = "3",
@@ -44,6 +47,7 @@ fun mockVideos(): List<VideoUi> = listOf(
         tags = listOf("Training", "Safety"),
         author = "Student Brigade",
         viewsText = "912 views",
-        ageText = "3 months ago"
+        ageText = "3 months ago",
+        description = "2 weeks ago"
     )
 )

@@ -6,12 +6,14 @@ import com.example.brigadist.ui.videos.model.VideoUi
 import com.example.brigadist.ui.videos.model.mockVideos
 
 @Composable
-fun VideosRoute() {
+fun VideosRoute(
+    onVideoClick: (VideoUi) -> Unit
+) {
     var query by rememberSaveable { mutableStateOf("") }
     val categories = listOf("All", "Safety", "Medical", "Training", "Emergency")
     var selectedCategory by rememberSaveable { mutableStateOf(categories.first()) }
 
-    // keep the mock list stable across recompositions
+    // stable mock list
     val allVideos: List<VideoUi> = remember { mockVideos() }
 
     // filter by category + query
@@ -35,8 +37,7 @@ fun VideosRoute() {
         selectedCategory = selectedCategory,
         onCategorySelected = { selectedCategory = it },
 
-        // NEW:
         videos = filtered,
-        onVideoClick = { /* TODO: navigate to detail with it.id */ }
+        onVideoClick = onVideoClick // <-- pass through
     )
 }
