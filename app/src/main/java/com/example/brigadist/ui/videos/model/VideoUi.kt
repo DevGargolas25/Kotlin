@@ -28,7 +28,7 @@ fun mockVideos(): List<VideoUi> = listOf(
         viewsText = "2.3k views",
         ageText = "2 weeks ago"
     ),
-    VideoUi(
+    VideoUi(//update
         id = "2",
         title = "First Aid Basics for Students",
         durationSec = 8 * 60 + 15,
