@@ -20,6 +20,7 @@ import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
 
 import com.example.brigadist.ui.map.MapScreen
+import com.example.brigadist.ui.profile.ProfileScreen
 
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
@@ -39,6 +40,7 @@ fun BrigadistApp() {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
+        var showProfile by rememberSaveable { mutableStateOf(false) }
         Scaffold(
             floatingActionButton = { BrSosFab { /* TODO SOS action */ } },
             floatingActionButtonPosition = FabPosition.Center,
@@ -56,7 +58,15 @@ fun BrigadistApp() {
                 color = MaterialTheme.colorScheme.background
             ) {
                 when (selected) {
-                    Destination.Home   -> HomeRoute()
+                    Destination.Home -> {
+                        if (!showProfile) {
+                            HomeRoute(
+                                onOpenProfile = { showProfile = true }    // <<< navigate to Profile
+                            )
+                        } else {
+                            ProfileScreen()                                // <<< show Profile
+                        }
+                    }
                     Destination.Chat -> {
                         if (!showChatDetail) {
                             ChatScreen(
