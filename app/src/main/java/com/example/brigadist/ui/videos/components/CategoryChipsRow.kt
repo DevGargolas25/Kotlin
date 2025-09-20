@@ -1,0 +1,29 @@
+package com.example.brigadist.ui.videos.components
+
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun CategoryChipsRow(
+    categories: List<String>,
+    selected: String,
+    onSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier = modifier.horizontalScroll(rememberScrollState())) {
+        categories.forEachIndexed { i, cat ->
+            CategoryChip(
+                text = cat,
+                selected = cat == selected,
+                onClick = { onSelected(cat) }
+            )
+            if (i != categories.lastIndex) Spacer(Modifier.width(12.dp))
+        }
+    }
+}
