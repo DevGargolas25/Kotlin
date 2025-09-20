@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.BrSosFab
 import com.example.brigadist.ui.components.Destination
@@ -55,7 +56,7 @@ fun BrigadistApp() {
             ) {
                 when (selected) {
                     Destination.Home   -> HomeRoute()
-                    Destination.Chat   -> Placeholder("Chat (coming soon)")
+                    Destination.Chat   -> ChatScreen()
 
                     Destination.Map    -> MapScreen()
 
