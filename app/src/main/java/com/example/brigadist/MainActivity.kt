@@ -16,7 +16,13 @@ import com.example.brigadist.ui.components.BrSosFab
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
+
 import com.example.brigadist.ui.map.MapScreen
+
+import com.example.brigadist.ui.videos.VideoDetailScreen
+import com.example.brigadist.ui.videos.VideosRoute
+import com.example.brigadist.ui.videos.model.VideoUi
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +35,7 @@ class MainActivity : ComponentActivity() {
 fun BrigadistApp() {
     BrigadistTheme {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
+        var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
 
         Scaffold(
             floatingActionButton = { BrSosFab { /* TODO SOS action */ } },
@@ -49,8 +56,20 @@ fun BrigadistApp() {
                 when (selected) {
                     Destination.Home   -> HomeRoute()
                     Destination.Chat   -> Placeholder("Chat (coming soon)")
+
                     Destination.Map    -> MapScreen()
-                    Destination.Videos -> Placeholder("Videos (coming soon)")
+
+
+
+                    Destination.Videos -> {
+                        if (selectedVideo == null) {
+                            VideosRoute(onVideoClick = { video -> selectedVideo = video })
+                        } else {
+                            VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
+                        }
+                    }
+
+
                 }
             }
         }
