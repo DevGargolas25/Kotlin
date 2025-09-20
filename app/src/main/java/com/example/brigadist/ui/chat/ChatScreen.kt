@@ -14,7 +14,7 @@ import com.example.brigadist.ui.chat.components.ConversationList
 import com.example.brigadist.ui.chat.model.ConversationUi
 
 @Composable
-fun ChatScreen() {
+fun ChatScreen() { //asdfsadf
     var query by remember { mutableStateOf("") }
 
     // Sample data like your screenshot
