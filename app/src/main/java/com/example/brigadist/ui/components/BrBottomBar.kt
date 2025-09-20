@@ -18,17 +18,13 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.brigadist.R
 import com.example.brigadist.ui.theme.DeepPurple
 import com.example.brigadist.ui.theme.LightAqua
 
 enum class Destination { Home, Chat, Map, Videos }
 
-/**
- * Bottom bar UI (visual only).
- * Put inside Scaffold(bottomBar = { BrBottomBar(...) })
- * and pair it with [BrSosFab] for the red SOS button.
- */
 @Composable
 fun BrBottomBar(
     selected: Destination,
@@ -38,56 +34,45 @@ fun BrBottomBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Color.White,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        shadowElevation = 10.dp,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shadowElevation = 12.dp,
         tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .height(80.dp)
+                .padding(horizontal = 24.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                 BarItem(
                     painter = rememberVectorPainter(Icons.Outlined.Home),
+                    label = "Home",
                     selected = selected == Destination.Home,
                     onClick = { onSelect(Destination.Home) }
                 )
-                Spacer(Modifier.width(12.dp))
                 BarItem(
                     painter = painterResource(R.drawable.ic_forum),
+                    label = "Chat",
                     selected = selected == Destination.Chat,
                     onClick = { onSelect(Destination.Chat) }
                 )
             }
 
-            // 🔴 SOS button inline
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE64646))
-                    .clickable { /* TODO: SOS Action */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Filled.Warning,
-                    contentDescription = "SOS",
-                    tint = Color.White
-                )
-            }
+            Spacer(modifier = Modifier.width(80.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                 BarItem(
                     painter = painterResource(R.drawable.ic_map),
+                    label = "Map",
                     selected = selected == Destination.Map,
                     onClick = { onSelect(Destination.Map) }
                 )
-                Spacer(Modifier.width(12.dp))
                 BarItem(
                     painter = painterResource(R.drawable.ic_play_circle),
+                    label = "Videos",
                     selected = selected == Destination.Videos,
                     onClick = { onSelect(Destination.Videos) }
                 )
@@ -95,46 +80,48 @@ fun BrBottomBar(
         }
     }
 }
-@Composable
 
+@Composable
 private fun BarItem(
     painter: Painter,
+    label: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
     val bg = if (selected) LightAqua.copy(alpha = 0.25f) else Color.Transparent
-    val tint = if (selected) DeepPurple else DeepPurple.copy(alpha = 0.7f)
+    val tint = if (selected) DeepPurple else DeepPurple.copy(alpha = 0.6f)
 
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(10.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Icon(
             painter = painter,
-            contentDescription = null,
+            contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(30.dp)
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = tint
         )
     }
 }
 
-
-/** Center SOS button (FAB) that floats above the bar. */
 @Composable
 fun BrSosFab(onClick: () -> Unit) {
     FloatingActionButton(
         onClick = onClick,
         shape = CircleShape,
-        containerColor = Color(0xFFE64646), // red SOS
+        containerColor = Color(0xFFE64646),
         contentColor = Color.White,
-        elevation = FloatingActionButtonDefaults.elevation(8.dp)
+        elevation = FloatingActionButtonDefaults.elevation(10.dp)
     ) {
         Icon(Icons.Filled.Warning, contentDescription = "SOS")
-
-
     }
 }

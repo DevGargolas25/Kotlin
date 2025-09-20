@@ -18,7 +18,7 @@ import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
 import com.example.brigadist.ui.map.MapScreen
 
-class MainActivity : ComponentActivity() {        // use this name in your manifest
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { BrigadistApp() }
