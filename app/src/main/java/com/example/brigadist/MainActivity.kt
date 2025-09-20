@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.BrSosFab
@@ -37,7 +38,7 @@ fun BrigadistApp() {
     BrigadistTheme {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
-
+        var showChatDetail by rememberSaveable { mutableStateOf(false) }
         Scaffold(
             floatingActionButton = { BrSosFab { /* TODO SOS action */ } },
             floatingActionButtonPosition = FabPosition.Center,
@@ -56,7 +57,17 @@ fun BrigadistApp() {
             ) {
                 when (selected) {
                     Destination.Home   -> HomeRoute()
-                    Destination.Chat   -> ChatScreen()
+                    Destination.Chat -> {
+                        if (!showChatDetail) {
+                            ChatScreen(
+                                onOpenConversation = { showChatDetail = true } // <-- go to detail
+                            )
+                        } else {
+                            DetailChat(
+                                onBack = { showChatDetail = false }            // <-- back to list
+                            )
+                        }
+                    }
 
                     Destination.Map    -> MapScreen()
 

@@ -14,7 +14,9 @@ import com.example.brigadist.ui.chat.components.ConversationList
 import com.example.brigadist.ui.chat.model.ConversationUi
 
 @Composable
-fun ChatScreen() { //asdfsadf
+fun ChatScreen(
+    onOpenConversation: () -> Unit = {}
+) {
     var query by remember { mutableStateOf("") }
 
     // Sample data like your screenshot
@@ -54,7 +56,7 @@ fun ChatScreen() { //asdfsadf
                     else -> MaterialTheme.colorScheme.secondary
                 }
             },
-            onClick = { /* TODO: navigate to conversation detail */ }
+            onClick = { _ -> onOpenConversation() }
         )
     }
 }
