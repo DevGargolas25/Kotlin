@@ -16,6 +16,7 @@ import com.example.brigadist.ui.components.BrSosFab
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
+import com.example.brigadist.ui.map.MapScreen
 
 class MainActivity : ComponentActivity() {        // use this name in your manifest
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +49,7 @@ fun BrigadistApp() {
                 when (selected) {
                     Destination.Home   -> HomeRoute()
                     Destination.Chat   -> Placeholder("Chat (coming soon)")
-                    Destination.Map    -> Placeholder("Map (coming soon)")
+                    Destination.Map    -> MapScreen()
                     Destination.Videos -> Placeholder("Videos (coming soon)")
                 }
             }
