@@ -34,3 +34,27 @@ val LightAqua = OutlineAqua
 val DeepPurple = DeepPurpleText
 val TurquoiseBlue = TealPrimary
 val MintGreen = GreenSecondary
+
+// Dark Theme Colors
+// Core dark palette - maintaining brand identity while ensuring accessibility
+val TealPrimaryDark = Color(0xFF5BA3A9) // Slightly muted teal for dark backgrounds
+val TealContainerDark = Color(0xFF1A3A3D) // Dark teal container
+val GreenSecondaryDark = Color(0xFF4A9B7A) // Muted green for dark mode
+val PeachTertiaryDark = Color(0xFFD4956B) // Warmer peach for dark mode
+val AquaSoftSurfaceDark = Color(0xFF0F1A1B) // Very dark surface
+val DeepPurpleTextDark = Color(0xFFE8D5ED) // Light purple text for dark backgrounds
+val OutlineAquaDark = Color(0xFF4A7A7A) // Muted aqua outline
+val ErrorRedDark = Color(0xFFFF6B6B) // Brighter red for dark mode
+
+// SOS Alert Category Colors - Dark Theme
+val AlertFireAccentDark = PeachTertiaryDark
+val AlertFireContainerDark = Color(0xFF2D1A0F) // Dark peach container
+val OnAlertFireContainerDark = Color(0xFFFFB366) // Light orange for contrast
+
+val AlertEarthquakeAccentDark = TealPrimaryDark
+val AlertEarthquakeContainerDark = TealContainerDark
+val OnAlertEarthquakeContainerDark = DeepPurpleTextDark
+
+val AlertMedicalAccentDark = GreenSecondaryDark
+val AlertMedicalContainerDark = Color(0xFF1A2D25) // Dark green container
+val OnAlertMedicalContainerDark = DeepPurpleTextDark

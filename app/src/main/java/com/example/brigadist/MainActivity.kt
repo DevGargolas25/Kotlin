@@ -11,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
+import com.example.brigadist.ui.theme.ThemeController
 
 import com.example.brigadist.ui.map.MapScreen
 import com.example.brigadist.ui.profile.ProfileScreen
@@ -39,7 +41,19 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun BrigadistApp() {
-    BrigadistTheme {
+    val context = LocalContext.current
+    val themeController = remember { ThemeController(context) }
+    val themeState by themeController.themeState.collectAsState()
+    
+    // Handle app lifecycle for sensor management
+    DisposableEffect(Unit) {
+        themeController.onAppResumed()
+        onDispose {
+            themeController.onAppPaused()
+        }
+    }
+    
+    BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
