@@ -20,6 +20,21 @@ object SosTelemetry {
         // TODO: Replace with actual analytics implementation
         // Example: analytics.track("sos_modal_closed")
     }
+    
+    fun trackSosSelectTypeOpened() {
+        // TODO: Replace with actual analytics implementation
+        // Example: analytics.track("sos_select_type_opened")
+    }
+    
+    fun trackSosTypeSelected(emergencyType: com.example.brigadist.ui.sos.components.EmergencyType) {
+        // TODO: Replace with actual analytics implementation
+        // Example: analytics.track("sos_type_selected", mapOf("type" to emergencyType.name.lowercase()))
+    }
+    
+    fun trackSosSelectTypeClosed() {
+        // TODO: Replace with actual analytics implementation
+        // Example: analytics.track("sos_select_type_closed")
+    }
 }
 
 enum class SosAction(val actionName: String) {

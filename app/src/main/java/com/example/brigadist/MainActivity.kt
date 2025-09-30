@@ -22,6 +22,8 @@ import com.example.brigadist.ui.map.MapScreen
 import com.example.brigadist.ui.profile.ProfileScreen
 
 import com.example.brigadist.ui.sos.SosModal
+import com.example.brigadist.ui.sos.SosSelectTypeModal
+import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.VideoUi
@@ -42,6 +44,7 @@ fun BrigadistApp() {
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
+        var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
         Scaffold(
             bottomBar = {
                 BrBottomBar(
@@ -107,12 +110,24 @@ fun BrigadistApp() {
             SosModal(
                 onDismiss = { showSosModal = false },
                 onSendEmergencyAlert = {
-                    // Navigate to emergency chat or placeholder
-                    selected = Destination.Chat
-                    showChatDetail = true
+                    // Show Step 2: Select Emergency Type modal
+                    showSosSelectTypeModal = true
                 },
                 onContactBrigade = {
                     // Navigate to brigade contact or placeholder
+                    selected = Destination.Chat
+                    showChatDetail = true
+                }
+            )
+        }
+
+        // SOS Select Type Modal (Step 2)
+        if (showSosSelectTypeModal) {
+            SosSelectTypeModal(
+                onDismiss = { showSosSelectTypeModal = false },
+                onTypeSelected = { emergencyType ->
+                    // Placeholder: Navigate to next step or dispatch
+                    // For now, navigate to chat as placeholder
                     selected = Destination.Chat
                     showChatDetail = true
                 }
