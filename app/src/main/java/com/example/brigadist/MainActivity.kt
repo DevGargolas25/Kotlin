@@ -23,6 +23,7 @@ import com.example.brigadist.ui.profile.ProfileScreen
 
 import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
+import com.example.brigadist.ui.sos.SosConfirmationModal
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
@@ -45,6 +46,8 @@ fun BrigadistApp() {
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
+        var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
+        var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
         Scaffold(
             bottomBar = {
                 BrBottomBar(
@@ -126,10 +129,20 @@ fun BrigadistApp() {
             SosSelectTypeModal(
                 onDismiss = { showSosSelectTypeModal = false },
                 onTypeSelected = { emergencyType ->
-                    // Placeholder: Navigate to next step or dispatch
-                    // For now, navigate to chat as placeholder
-                    selected = Destination.Chat
-                    showChatDetail = true
+                    // Show Step 3: Confirmation modal
+                    selectedEmergencyType = emergencyType
+                    showSosConfirmationModal = true
+                }
+            )
+        }
+
+        // SOS Confirmation Modal (Step 3)
+        if (showSosConfirmationModal && selectedEmergencyType != null) {
+            SosConfirmationModal(
+                emergencyType = selectedEmergencyType!!,
+                onDismiss = { 
+                    showSosConfirmationModal = false
+                    selectedEmergencyType = null
                 }
             )
         }
