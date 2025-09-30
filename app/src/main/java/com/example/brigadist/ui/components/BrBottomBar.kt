@@ -29,99 +29,66 @@ enum class Destination { Home, Chat, Map, Videos }
 fun BrBottomBar(
     selected: Destination,
     onSelect: (Destination) -> Unit,
+    onSosClick: () -> Unit,           // NEW
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Color.White,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        shadowElevation = 12.dp,
-        tonalElevation = 0.dp
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 24.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
-                BarItem(
-                    painter = rememberVectorPainter(Icons.Outlined.Home),
-                    label = "Home",
-                    selected = selected == Destination.Home,
-                    onClick = { onSelect(Destination.Home) }
-                )
-                BarItem(
-                    painter = painterResource(R.drawable.ic_forum),
-                    label = "Chat",
-                    selected = selected == Destination.Chat,
-                    onClick = { onSelect(Destination.Chat) }
-                )
-            }
-
-            Spacer(modifier = Modifier.width(80.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
-                BarItem(
-                    painter = painterResource(R.drawable.ic_map),
-                    label = "Map",
-                    selected = selected == Destination.Map,
-                    onClick = { onSelect(Destination.Map) }
-                )
-                BarItem(
-                    painter = painterResource(R.drawable.ic_play_circle),
-                    label = "Videos",
-                    selected = selected == Destination.Videos,
-                    onClick = { onSelect(Destination.Videos) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BarItem(
-    painter: Painter,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val bg = if (selected) LightAqua.copy(alpha = 0.25f) else Color.Transparent
-    val tint = if (selected) DeepPurple else DeepPurple.copy(alpha = 0.6f)
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Icon(
-            painter = painter,
-            contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(30.dp)
+        // Home
+        NavigationBarItem(
+            selected = selected == Destination.Home,
+            onClick = { onSelect(Destination.Home) },
+            icon = { Icon(Icons.Outlined.Home, contentDescription = "Home") },
+            label = { Text("Home") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.primary,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            )
         )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = tint
+        // Chat
+        NavigationBarItem(
+            selected = selected == Destination.Chat,
+            onClick = { onSelect(Destination.Chat) },
+            icon = { Icon(painterResource(R.drawable.ic_forum), contentDescription = "Chat") },
+            label = { Text("Chat") }
+        )
+        // SOS (center action, not a destination)
+        NavigationBarItem(
+            selected = false,
+            onClick = onSosClick,
+            icon = {
+                Icon(
+                    Icons.Filled.Warning,
+                    contentDescription = "SOS",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            label = { Text("SOS", color = MaterialTheme.colorScheme.error) },
+            alwaysShowLabel = true
+        )
+        // Map
+        NavigationBarItem(
+            selected = selected == Destination.Map,
+            onClick = { onSelect(Destination.Map) },
+            icon = { Icon(painterResource(R.drawable.ic_map), contentDescription = "Map") },
+            label = { Text("Map") }
+        )
+        // Videos
+        NavigationBarItem(
+            selected = selected == Destination.Videos,
+            onClick = { onSelect(Destination.Videos) },
+            icon = { Icon(painterResource(R.drawable.ic_play_circle), contentDescription = "Videos") },
+            label = { Text("Videos") }
         )
     }
 }
 
-@Composable
-fun BrSosFab(onClick: () -> Unit) {
-    FloatingActionButton(
-        onClick = onClick,
-        shape = CircleShape,
-        containerColor = Color(0xFFE64646),
-        contentColor = Color.White,
-        elevation = FloatingActionButtonDefaults.elevation(10.dp)
-    ) {
-        Icon(Icons.Filled.Warning, contentDescription = "SOS")
-    }
-}
+// Legacy components - kept for reference but not used
+// @Composable
+// private fun BarItem(...) { ... }
+
+// @Composable  
+// fun BrSosFab(onClick: () -> Unit) { ... }

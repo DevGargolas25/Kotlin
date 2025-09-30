@@ -60,7 +60,7 @@ fun ProfileScreen(
             // Personal Information Section
             SectionCard(
                 icon = Icons.Default.Person,
-                iconTint = Color(0xFF75C1C7),
+                iconTint = MaterialTheme.colorScheme.primary,
                 title = "Personal Information"
             ) {
                 FieldRow(label = "Full Name", value = "John Smith")
@@ -73,7 +73,7 @@ fun ProfileScreen(
             // Emergency Contacts Section
             SectionCard(
                 icon = Icons.Default.Phone,
-                iconTint = Color(0xFF60B896),
+                iconTint = MaterialTheme.colorScheme.secondary,
                 title = "Emergency Contacts"
             ) {
                 FieldRow(label = "Primary Contact", value = "Jane Smith (Mother)")
@@ -85,7 +85,7 @@ fun ProfileScreen(
             // Medical Information Section
             SectionCard(
                 icon = Icons.Default.FavoriteBorder,
-                iconTint = Color(0xFF75C1C7),
+                iconTint = MaterialTheme.colorScheme.primary,
                 title = "Medical Information"
             ) {
                 FieldRow(label = "Blood Type", value = "O+")
@@ -98,7 +98,7 @@ fun ProfileScreen(
             // Allergies Section
             SectionCard(
                 icon = Icons.Default.Info,
-                iconTint = Color(0xFF75C1C7),
+                iconTint = MaterialTheme.colorScheme.primary,
                 title = "Allergies"
             ) {
                 FieldRow(label = "Food Allergies", value = "Peanuts, Shellfish")
@@ -111,7 +111,7 @@ fun ProfileScreen(
             // Current Medications Section
             SectionCard(
                 icon = Icons.Default.ShoppingCart,
-                iconTint = Color(0xFF60B896),
+                iconTint = MaterialTheme.colorScheme.secondary,
                 title = "Current Medications"
             ) {
                 FieldRow(label = "Daily Medications", value = "Inhaler (Albuterol) - As needed for asthma")
@@ -130,10 +130,10 @@ fun ProfileScreen(
  */
 @Composable
 fun ProfileHeader(onEdit: () -> Unit = {}) {
-    val avatarBackground = Color(0xFFEAF5F6)
-    val avatarTint = Color(0xFF75C1C7)
-    val nameColour = Color(0xFF4A2951)
-    val roleColour = Color(0x884A2951)
+    val avatarBackground = MaterialTheme.colorScheme.primaryContainer
+    val avatarTint = MaterialTheme.colorScheme.primary
+    val nameColour = MaterialTheme.colorScheme.onSurface
+    val roleColour = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -190,10 +190,10 @@ fun SectionCard(
     title: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val borderColour = Color(0x3399D2D2)
+    val borderColour = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, borderColour),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -208,7 +208,7 @@ fun SectionCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
-                    color = Color(0xFF4A2951),
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -226,9 +226,9 @@ fun SectionCard(
  */
 @Composable
 fun FieldRow(label: String, value: String) {
-    val labelColour = Color(0xFF4A2951)
-    val valueColour = Color(0xFF4A2951)
-    val fieldBackground = Color(0xFFF7FBFC)
+    val labelColour = MaterialTheme.colorScheme.onSurface
+    val valueColour = MaterialTheme.colorScheme.onSurface
+    val fieldBackground = MaterialTheme.colorScheme.surfaceVariant
     Text(
         text = label,
         color = labelColour,

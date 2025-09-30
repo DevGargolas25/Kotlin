@@ -32,9 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.ui.home.model.HomeSamples.videos
 import com.example.brigadist.ui.home.model.VideoCard
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.MintGreen
-import com.example.brigadist.ui.theme.TurquoiseBlue
 
 @Composable
 fun HomeLearnOnYourOwnSection(
@@ -48,7 +45,7 @@ fun HomeLearnOnYourOwnSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White), // <-- ensure pure white
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), // <-- ensure pure white
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -59,27 +56,27 @@ fun HomeLearnOnYourOwnSection(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(MintGreen.copy(alpha = 0.15f)),
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow, // keep or swap for MenuBook outlined
                         contentDescription = null,
-                        tint = MintGreen
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = "Learn on Your Own",
                     style = MaterialTheme.typography.titleLarge,
-                    color = DeepPurple
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             Spacer(Modifier.height(10.dp))
             Text(
                 "Watch training videos and safety guides at your own pace.",
-                color = DeepPurple.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.bodyLarge
             )
 
@@ -92,7 +89,7 @@ fun HomeLearnOnYourOwnSection(
                     .clip(RoundedCornerShape(16.dp))
                     .border(
                         width = 1.dp,
-                        color = Color(0x15000000),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f),
                         shape = RoundedCornerShape(16.dp)
                     )
                     .padding(vertical = 14.dp)
@@ -110,17 +107,26 @@ fun HomeLearnOnYourOwnSection(
 
                 Spacer(Modifier.height(10.dp))
 
-                // Centered “View All Videos”
+                // Centered "View All Videos"
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    TextButton(onClick = onViewAllClick) {
+                    TextButton(
+                        onClick = onViewAllClick,
+                        modifier = Modifier
+                            .height(48.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
                         Text(
-                            text = "View All Videos",
-                            color = TurquoiseBlue,
+                            text = "View all videos",
+                            color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.titleSmall
                         )
                     }

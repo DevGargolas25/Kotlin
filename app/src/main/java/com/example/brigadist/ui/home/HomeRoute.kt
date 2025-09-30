@@ -11,7 +11,8 @@ import com.example.brigadist.ui.home.model.VideoCard
 @Composable
 fun HomeRoute(
     onOpenVideo: (VideoCard) -> Unit = {},
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    onNavigateToVideos: () -> Unit = {}
 ) {
     var state by remember {
         mutableStateOf(
@@ -34,9 +35,9 @@ fun HomeRoute(
         },
         onShowAllNotifications = { showNotifications = true },
         onOpenProfileSettings = onOpenProfile,
-
         onLearnMore = { /* navigate to join page */ },
-        onVideoClick = onOpenVideo
+        onVideoClick = onOpenVideo,
+        onNavigateToVideos = onNavigateToVideos
     )
 
     if (showMenu) {

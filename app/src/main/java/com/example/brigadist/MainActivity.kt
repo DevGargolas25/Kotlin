@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
-import com.example.brigadist.ui.components.BrSosFab
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
@@ -22,6 +21,10 @@ import com.example.brigadist.ui.theme.BrigadistTheme
 import com.example.brigadist.ui.map.MapScreen
 import com.example.brigadist.ui.profile.ProfileScreen
 
+import com.example.brigadist.ui.sos.SosModal
+import com.example.brigadist.ui.sos.SosSelectTypeModal
+import com.example.brigadist.ui.sos.SosConfirmationModal
+import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.VideoUi
@@ -41,13 +44,21 @@ fun BrigadistApp() {
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
+        var showSosModal by rememberSaveable { mutableStateOf(false) }
+        var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
+        var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
+        var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
         Scaffold(
-            floatingActionButton = { BrSosFab { /* TODO SOS action */ } },
-            floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
                 BrBottomBar(
                     selected = selected,
-                    onSelect = { selected = it }
+                    onSelect = { dest ->
+                        selected = dest
+                        // reset inner states when switching tabs
+                        if (dest == Destination.Home) showProfile = false
+                        if (dest == Destination.Chat) showChatDetail = false
+                    },
+                    onSosClick = { showSosModal = true }
                 )
             }
         ) { inner ->
@@ -61,7 +72,8 @@ fun BrigadistApp() {
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
-                                onOpenProfile = { showProfile = true }    // <<< navigate to Profile
+                                onOpenProfile = { showProfile = true },    // <<< navigate to Profile
+                                onNavigateToVideos = { selected = Destination.Videos }
                             )
                         } else {
                             ProfileScreen()                                // <<< show Profile
@@ -94,6 +106,45 @@ fun BrigadistApp() {
 
                 }
             }
+        }
+
+        // SOS Modal
+        if (showSosModal) {
+            SosModal(
+                onDismiss = { showSosModal = false },
+                onSendEmergencyAlert = {
+                    // Show Step 2: Select Emergency Type modal
+                    showSosSelectTypeModal = true
+                },
+                onContactBrigade = {
+                    // Navigate to brigade contact or placeholder
+                    selected = Destination.Chat
+                    showChatDetail = true
+                }
+            )
+        }
+
+        // SOS Select Type Modal (Step 2)
+        if (showSosSelectTypeModal) {
+            SosSelectTypeModal(
+                onDismiss = { showSosSelectTypeModal = false },
+                onTypeSelected = { emergencyType ->
+                    // Show Step 3: Confirmation modal
+                    selectedEmergencyType = emergencyType
+                    showSosConfirmationModal = true
+                }
+            )
+        }
+
+        // SOS Confirmation Modal (Step 3)
+        if (showSosConfirmationModal && selectedEmergencyType != null) {
+            SosConfirmationModal(
+                emergencyType = selectedEmergencyType!!,
+                onDismiss = { 
+                    showSosConfirmationModal = false
+                    selectedEmergencyType = null
+                }
+            )
         }
     }
 }

@@ -146,9 +146,9 @@ fun DetailChat(
 fun ChatTopBar(onBack: () -> Unit = {}) {
     // Tint values derived from the supplied design. Changing these here propagates
     // throughout the bar for easier theming.
-    val containerColour = Color(0xFF75C1C7)
-    val textPrimary = Color.White
-    val textSecondary = Color.White.copy(alpha = 0.8f)
+    val containerColour = MaterialTheme.colorScheme.primary
+    val textPrimary = MaterialTheme.colorScheme.onPrimary
+    val textSecondary = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
 
     TopAppBar(
         navigationIcon = {
@@ -201,11 +201,11 @@ fun ChatTopBar(onBack: () -> Unit = {}) {
 fun MessageRow(message: ChatMessage) {
     val bubbleShape = RoundedCornerShape(16.dp)
     // Define base palette derived from the reference implementation.
-    val userBubbleColour = Color(0xFF60B896)
-    val otherBubbleColour = Color(0xFF99D2D2)
-    val senderColour = Color(0xFF60B896)
-    val bodyColour = Color(0xFF4A2951)
-    val timeColour = Color(0x994A2951)
+    val userBubbleColour = MaterialTheme.colorScheme.secondary
+    val otherBubbleColour = MaterialTheme.colorScheme.primaryContainer
+    val senderColour = MaterialTheme.colorScheme.secondary
+    val bodyColour = MaterialTheme.colorScheme.onSurface
+    val timeColour = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
     Row(
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start,
@@ -295,10 +295,10 @@ fun AvatarCircle(colour: Color) {
 @Composable
 fun MessageInputBar() {
     var inputValue by remember { mutableStateOf("") }
-    val borderColour = Color(0x3399D2D2) // semi‑transparent border for the text field
-    val backgroundColour = Color.White
-    val hintColour = Color(0x884A2951)
-    val sendColour = Color(0xFF75C1C7)
+    val borderColour = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f) // semi‑transparent border for the text field
+    val backgroundColour = MaterialTheme.colorScheme.surface
+    val hintColour = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val sendColour = MaterialTheme.colorScheme.primary
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -313,12 +313,12 @@ fun MessageInputBar() {
             placeholder = { Text(text = "Type a message...", color = hintColour) },
             singleLine = true,
             colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFFF7FBFC),
-                focusedContainerColor = Color(0xFFF7FBFC),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 unfocusedIndicatorColor = borderColour,
                 focusedIndicatorColor = borderColour,
-                unfocusedTextColor = Color(0xFF4A2951),
-                focusedTextColor = Color(0xFF4A2951),
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 cursorColor = sendColour
             ),
             shape = RoundedCornerShape(24.dp),
