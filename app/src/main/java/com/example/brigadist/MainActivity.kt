@@ -21,6 +21,7 @@ import com.example.brigadist.ui.theme.BrigadistTheme
 import com.example.brigadist.ui.map.MapScreen
 import com.example.brigadist.ui.profile.ProfileScreen
 
+import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.VideoUi
@@ -40,6 +41,7 @@ fun BrigadistApp() {
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
+        var showSosModal by rememberSaveable { mutableStateOf(false) }
         Scaffold(
             bottomBar = {
                 BrBottomBar(
@@ -50,7 +52,7 @@ fun BrigadistApp() {
                         if (dest == Destination.Home) showProfile = false
                         if (dest == Destination.Chat) showChatDetail = false
                     },
-                    onSosClick = { /* TODO: trigger your SOS flow or confirmation */ }
+                    onSosClick = { showSosModal = true }
                 )
             }
         ) { inner ->
@@ -64,7 +66,8 @@ fun BrigadistApp() {
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
-                                onOpenProfile = { showProfile = true }    // <<< navigate to Profile
+                                onOpenProfile = { showProfile = true },    // <<< navigate to Profile
+                                onNavigateToVideos = { selected = Destination.Videos }
                             )
                         } else {
                             ProfileScreen()                                // <<< show Profile
@@ -97,6 +100,23 @@ fun BrigadistApp() {
 
                 }
             }
+        }
+
+        // SOS Modal
+        if (showSosModal) {
+            SosModal(
+                onDismiss = { showSosModal = false },
+                onSendEmergencyAlert = {
+                    // Navigate to emergency chat or placeholder
+                    selected = Destination.Chat
+                    showChatDetail = true
+                },
+                onContactBrigade = {
+                    // Navigate to brigade contact or placeholder
+                    selected = Destination.Chat
+                    showChatDetail = true
+                }
+            )
         }
     }
 }

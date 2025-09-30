@@ -23,7 +23,8 @@ fun HomeScreen(
     onShowAllNotifications: () -> Unit,
     onOpenProfileSettings: () -> Unit,
     onLearnMore: () -> Unit,
-    onVideoClick: (VideoCard) -> Unit
+    onVideoClick: (VideoCard) -> Unit,
+    onNavigateToVideos: () -> Unit
 ) {
     LaunchedEffect(state.notifications) {
         while (true) { delay(10_000); onTickNotification() }
@@ -50,7 +51,7 @@ fun HomeScreen(
         HomeLearnOnYourOwnSection(
             videos = state.videos,
             onVideoClick = onVideoClick,
-            onViewAllClick = { /* TODO: navigate later */ }
+            onViewAllClick = onNavigateToVideos
         )
 
     }
