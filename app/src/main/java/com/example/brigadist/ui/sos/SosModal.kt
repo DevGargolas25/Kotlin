@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.brigadist.ui.sos.components.SosHeader
 
 @Composable
 fun SosModal(
@@ -61,120 +62,90 @@ fun SosModal(
                     .clickable(enabled = false) { }, // Prevent clicks from bubbling to scrim
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = Color.Transparent
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
                 ) {
-                    // Close button
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                    // Red header band with close button
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
+                        // Header content
+                        SosHeader()
+                        
+                        // Close button positioned in top-right
                         IconButton(
                             onClick = {
                                 SosTelemetry.trackSosModalClosed()
                                 onDismiss()
                             },
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier
+                                .size(48.dp)
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onError
                             )
                         }
                     }
-
-                    // Header
-                    SosHeader()
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Action buttons
-                    SosActionButton(
-                        icon = Icons.Default.Warning,
-                        title = "Send Emergency Alert",
-                        subtitle = "Alert campus security and brigade members",
-                        onClick = {
-                            SosTelemetry.trackSosActionSelected(SosAction.SEND_EMERGENCY_ALERT)
-                            onSendEmergencyAlert()
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    
+                    // Divider
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        thickness = 1.dp
                     )
+                    
+                    // White content area
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Action buttons
+                        SosActionButton(
+                            icon = Icons.Default.Warning,
+                            title = "Send Emergency Alert",
+                            subtitle = "Alert campus security and brigade members",
+                            onClick = {
+                                SosTelemetry.trackSosActionSelected(SosAction.SEND_EMERGENCY_ALERT)
+                                onSendEmergencyAlert()
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    SosActionButton(
-                        icon = Icons.Default.Person,
-                        title = "Contact Brigade",
-                        subtitle = "Connect with nearest brigade member",
-                        onClick = {
-                            SosTelemetry.trackSosActionSelected(SosAction.CONTACT_BRIGADE)
-                            onContactBrigade()
-                            onDismiss()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        SosActionButton(
+                            icon = Icons.Default.Person,
+                            title = "Contact Brigade",
+                            subtitle = "Connect with nearest brigade member",
+                            onClick = {
+                                SosTelemetry.trackSosActionSelected(SosAction.CONTACT_BRIGADE)
+                                onContactBrigade()
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                    // Footer note
-                    SosFooterNote()
+                        // Footer note
+                        SosFooterNote()
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SosHeader(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Alert icon
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                    RoundedCornerShape(32.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Emergency Assistance",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Choose how you need help",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
     }
 }
 
