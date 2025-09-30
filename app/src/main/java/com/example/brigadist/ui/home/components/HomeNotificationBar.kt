@@ -25,26 +25,26 @@ fun HomeNotificationBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(LightAqua)
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = text,
-            color = DeepPurple,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
         IconButton(onClick = onBellClick) {
-            Icon(Icons.Filled.Notifications, contentDescription = "Notifications", tint = DeepPurple)
+            Icon(Icons.Filled.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurface)
         }
         IconButton(onClick = onMenuClick) {
             Icon(
                 imageVector = Icons.Outlined.AccountCircle, // <-- outlined user/profile icon
                 contentDescription = "Profile & Settings",
-                tint = DeepPurple
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }

@@ -30,7 +30,7 @@ fun HomeScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(SoftWhite).padding(bottom = 80.dp)
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant).padding(bottom = 80.dp)
     ) {
         val banner = state.notifications.getOrNull(state.currentNotificationIndex).orEmpty()
 
@@ -42,7 +42,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
         Text("Hi John!", style = MaterialTheme.typography.headlineSmall,
-            color = DeepPurple, modifier = Modifier.padding(horizontal = 16.dp))
+            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 16.dp))
 
         Spacer(Modifier.height(16.dp))
         HomeJoinBrigadeCard(onLearnMore)

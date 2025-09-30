@@ -33,7 +33,7 @@ fun ChatScreen(
         ChatTopBar(
             search = query,
             onSearchChange = { query = it },
-            headerColor = MaterialTheme.colorScheme.secondary
+            headerColor = MaterialTheme.colorScheme.primary
         )
 
         ConversationList(

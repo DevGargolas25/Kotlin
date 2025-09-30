@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
-import com.example.brigadist.ui.components.BrSosFab
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
@@ -42,12 +41,16 @@ fun BrigadistApp() {
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         Scaffold(
-            floatingActionButton = { BrSosFab { /* TODO SOS action */ } },
-            floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
                 BrBottomBar(
                     selected = selected,
-                    onSelect = { selected = it }
+                    onSelect = { dest ->
+                        selected = dest
+                        // reset inner states when switching tabs
+                        if (dest == Destination.Home) showProfile = false
+                        if (dest == Destination.Chat) showChatDetail = false
+                    },
+                    onSosClick = { /* TODO: trigger your SOS flow or confirmation */ }
                 )
             }
         ) { inner ->

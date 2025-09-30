@@ -31,7 +31,7 @@ fun ChatTopBar(
     search: String,
     onSearchChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    headerColor: Color = MaterialTheme.colorScheme.secondary
+    headerColor: Color = MaterialTheme.colorScheme.primary
 
 ) {
 
@@ -48,7 +48,7 @@ fun ChatTopBar(
                 text = "Messages",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
 
             Spacer(Modifier.height(12.dp))
@@ -75,9 +75,9 @@ fun ChatTopBar(
                 },
                 shape = RoundedCornerShape(24.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF0F6F7),   // soft, near-white (like the mock)
-                    unfocusedContainerColor = Color(0xFFF0F6F7),
-                    disabledContainerColor = Color(0xFFF0F6F7),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
