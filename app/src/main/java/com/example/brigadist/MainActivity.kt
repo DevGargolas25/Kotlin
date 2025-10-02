@@ -17,10 +17,8 @@ import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.theme.BrigadistTheme
-
 import com.example.brigadist.ui.map.MapScreen
 import com.example.brigadist.ui.profile.ProfileScreen
-
 import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
 import com.example.brigadist.ui.sos.SosConfirmationModal
@@ -28,11 +26,15 @@ import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.VideoUi
-
+import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Inicializar Firebase (sin pruebas de escritura/lectura)
+        FirebaseApp.initializeApp(this)
+
         setContent { BrigadistApp() }
     }
 }
@@ -48,13 +50,13 @@ fun BrigadistApp() {
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
         var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
         var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
+
         Scaffold(
             bottomBar = {
                 BrBottomBar(
                     selected = selected,
                     onSelect = { dest ->
                         selected = dest
-                        // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
                         if (dest == Destination.Chat) showChatDetail = false
                     },
@@ -72,28 +74,27 @@ fun BrigadistApp() {
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
-                                onOpenProfile = { showProfile = true },    // <<< navigate to Profile
+                                onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos }
                             )
                         } else {
-                            ProfileScreen()                                // <<< show Profile
+                            ProfileScreen()
                         }
                     }
+
                     Destination.Chat -> {
                         if (!showChatDetail) {
                             ChatScreen(
-                                onOpenConversation = { showChatDetail = true } // <-- go to detail
+                                onOpenConversation = { showChatDetail = true }
                             )
                         } else {
                             DetailChat(
-                                onBack = { showChatDetail = false }            // <-- back to list
+                                onBack = { showChatDetail = false }
                             )
                         }
                     }
 
-                    Destination.Map    -> MapScreen()
-
-
+                    Destination.Map -> MapScreen()
 
                     Destination.Videos -> {
                         if (selectedVideo == null) {
@@ -102,8 +103,6 @@ fun BrigadistApp() {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
                     }
-
-
                 }
             }
         }
@@ -112,35 +111,30 @@ fun BrigadistApp() {
         if (showSosModal) {
             SosModal(
                 onDismiss = { showSosModal = false },
-                onSendEmergencyAlert = {
-                    // Show Step 2: Select Emergency Type modal
-                    showSosSelectTypeModal = true
-                },
+                onSendEmergencyAlert = { showSosSelectTypeModal = true },
                 onContactBrigade = {
-                    // Navigate to brigade contact or placeholder
                     selected = Destination.Chat
                     showChatDetail = true
                 }
             )
         }
 
-        // SOS Select Type Modal (Step 2)
+        // SOS Select Type Modal
         if (showSosSelectTypeModal) {
             SosSelectTypeModal(
                 onDismiss = { showSosSelectTypeModal = false },
                 onTypeSelected = { emergencyType ->
-                    // Show Step 3: Confirmation modal
                     selectedEmergencyType = emergencyType
                     showSosConfirmationModal = true
                 }
             )
         }
 
-        // SOS Confirmation Modal (Step 3)
+        // SOS Confirmation Modal
         if (showSosConfirmationModal && selectedEmergencyType != null) {
             SosConfirmationModal(
                 emergencyType = selectedEmergencyType!!,
-                onDismiss = { 
+                onDismiss = {
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
