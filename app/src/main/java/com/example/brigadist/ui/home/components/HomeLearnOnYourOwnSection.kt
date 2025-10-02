@@ -29,7 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.example.brigadist.ui.home.HomeTelemetry
 import com.example.brigadist.ui.home.model.HomeSamples.videos
 import com.example.brigadist.ui.home.model.VideoCard
 
@@ -50,27 +53,49 @@ fun HomeLearnOnYourOwnSection(
     ) {
         Column(Modifier.padding(18.dp)) {
 
-            // Title row
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow, // keep or swap for MenuBook outlined
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
+            // Title row with CTA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow, // keep or swap for MenuBook outlined
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "Learn on Your Own",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = "Learn on Your Own",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                
+                // "View all videos" CTA in header
+                TextButton(
+                    onClick = {
+                        HomeTelemetry.trackViewAllVideosTap("home_carousel")
+                        onViewAllClick()
+                    },
+                    modifier = Modifier
+                        .semantics { contentDescription = "View all videos" }
+                ) {
+                    Text(
+                        text = "View all videos",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
 
             Spacer(Modifier.height(10.dp))
@@ -105,32 +130,6 @@ fun HomeLearnOnYourOwnSection(
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
-
-                // Centered "View All Videos"
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    TextButton(
-                        onClick = onViewAllClick,
-                        modifier = Modifier
-                            .height(48.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "View all videos",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                    }
-                }
             }
         }
     }
