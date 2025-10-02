@@ -1,62 +1,104 @@
 package com.example.brigadist.ui.chat
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.*
 import com.example.brigadist.R
-import com.example.brigadist.ui.chat.components.ChatTopBar
-import com.example.brigadist.ui.chat.components.ConversationList
-import com.example.brigadist.ui.chat.model.ConversationUi
+import com.example.brigadist.ui.chat.components.*
+import kotlinx.coroutines.delay
 
 @Composable
-fun ChatScreen(
-    onOpenConversation: () -> Unit = {}
-) {
-    var query by remember { mutableStateOf("") }
-
-    // Sample data like your screenshot
-    val conversations = listOf(
-        ConversationUi(1, "Brigade Assistant",
-            "The main assembly points are: Main Campus: Front park…", "10:32 AM", 2),
-        ConversationUi(2, "Brigade Team",
-            "Meeting tonight at 7 PM in room 203. Please confirm y…", "9:45 AM", 0),
-        ConversationUi(3, "Brigade Alerts",
-            "Weather alert: Strong winds expected this afternoon. St…", "Yesterday", 1),
-    )
-
+fun ChatScreen() {
+    // Single-thread chat state
+    val messages = remember { mutableStateListOf<MessageUi>() }
+    val isTyping = remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val lastUserMessageId = remember { mutableStateOf<Long?>(null) }
+    
+    // Auto-scroll to bottom when new messages are added
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
+    }
+    
+    // Handle typing simulation when user sends a message
+    LaunchedEffect(lastUserMessageId.value) {
+        lastUserMessageId.value?.let { messageId ->
+            isTyping.value = true
+            delay(1500) // 1.5 second delay
+            isTyping.value = false
+            
+            // Add assistant reply
+            messages += MessageUi(
+                id = messageId + 1L,
+                from = Sender.ASSISTANT,
+                text = "Got it. I'll guide you step by step."
+            )
+        }
+    }
+    
     Column(modifier = Modifier.fillMaxSize()) {
-        ChatTopBar(
-            search = query,
-            onSearchChange = { query = it },
-            headerColor = MaterialTheme.colorScheme.primary
-        )
+        // Message list consumes available vertical space
+        Box(modifier = Modifier.weight(1f)) {
+            if (messages.isEmpty()) {
+                EmptyState()
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .semantics {
+                            contentDescription = "Chat messages"
+                        },
+                    state = listState,
+                    reverseLayout = true,
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    // Show typing indicator if active
+                    if (isTyping.value) {
+                        item {
+                            Row {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                                ) {
+                                    TypingIndicator()
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+                    
+                    // reverseLayout=true expects the items in chronological order,
+                    // so feed reversed data to show last at bottom.
+                    items(messages.asReversed(), key = { it.id }) { msg ->
+                        MessageBubble(msg)
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
 
-        ConversationList(
-            items = conversations.filter {
-                query.isBlank() || it.name.contains(query, ignoreCase = true)
-            },
-            iconById = { convo ->
-                when (convo.id) {
-                    1 -> R.drawable.ic_assistant   // add these vector assets or change names
-                    2 -> R.drawable.ic_group
-                    3 -> R.drawable.ic_bubble
-                    else -> null
-                }
-            },
-            colorById = { convo ->
-                when (convo.id) {
-                    1 -> Color(0xFF75C0BE) // teal (assistant)
-                    2 -> Color(0xFF7CCB9E) // green (team)
-                    3 -> Color(0xFFF7BFA3) // peach (alerts)
-                    else -> MaterialTheme.colorScheme.secondary
-                }
-            },
-            onClick = { _ -> onOpenConversation() }
+        // Composer at the bottom
+        ComposerBar(
+            onSend = { text ->
+                val nextId = (messages.lastOrNull()?.id ?: 0L) + 1L
+                // Append user message
+                messages += MessageUi(id = nextId, from = Sender.USER, text = text)
+                
+                // Trigger typing simulation
+                lastUserMessageId.value = nextId
+            }
         )
     }
 }

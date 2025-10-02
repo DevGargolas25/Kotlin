@@ -12,7 +12,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
@@ -44,7 +43,7 @@ fun BrigadistApp() {
     val context = LocalContext.current
     val themeController = remember { ThemeController(context) }
     val themeState by themeController.themeState.collectAsState()
-    
+
     // Handle app lifecycle for sensor management
     DisposableEffect(Unit) {
         themeController.onAppResumed()
@@ -52,11 +51,10 @@ fun BrigadistApp() {
             themeController.onAppPaused()
         }
     }
-    
+
     BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
-        var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
@@ -70,7 +68,7 @@ fun BrigadistApp() {
                         selected = dest
                         // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
-                        if (dest == Destination.Chat) showChatDetail = false
+
                     },
                     onSosClick = { showSosModal = true }
                 )
@@ -93,17 +91,7 @@ fun BrigadistApp() {
                             ProfileScreen()                                // <<< show Profile
                         }
                     }
-                    Destination.Chat -> {
-                        if (!showChatDetail) {
-                            ChatScreen(
-                                onOpenConversation = { showChatDetail = true } // <-- go to detail
-                            )
-                        } else {
-                            DetailChat(
-                                onBack = { showChatDetail = false }            // <-- back to list
-                            )
-                        }
-                    }
+                    Destination.Chat -> ChatScreen()
 
                     Destination.Map    -> MapScreen()
 
@@ -133,7 +121,6 @@ fun BrigadistApp() {
                 onContactBrigade = {
                     // Navigate to brigade contact or placeholder
                     selected = Destination.Chat
-                    showChatDetail = true
                 }
             )
         }
@@ -154,7 +141,7 @@ fun BrigadistApp() {
         if (showSosConfirmationModal && selectedEmergencyType != null) {
             SosConfirmationModal(
                 emergencyType = selectedEmergencyType!!,
-                onDismiss = { 
+                onDismiss = {
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
