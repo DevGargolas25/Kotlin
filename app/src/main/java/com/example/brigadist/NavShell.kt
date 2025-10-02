@@ -9,7 +9,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.brigadist.auth.User
-import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
@@ -26,13 +25,17 @@ import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.VideoUi
 
 @Composable
-fun NavShell(user: User, onLogout: () -> Unit) {
+fun NavShell(
+    user: User, 
+    orchestrator: AppOrchestrator,
+    onLogout: () -> Unit
+) {
     val orquestador = Orquestador(user)
+    val themeState by orchestrator.themeState.collectAsState()
 
-    BrigadistTheme {
+    BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
-        var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
@@ -46,7 +49,6 @@ fun NavShell(user: User, onLogout: () -> Unit) {
                         selected = dest
                         // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
-                        if (dest == Destination.Chat) showChatDetail = false
                     },
                     onSosClick = { showSosModal = true }
                 )
@@ -69,18 +71,7 @@ fun NavShell(user: User, onLogout: () -> Unit) {
                             ProfileScreen(orquestador = orquestador, onLogout = onLogout)
                         }
                     }
-                    Destination.Chat -> {
-                        if (!showChatDetail) {
-                            ChatScreen(
-                                orquestador = orquestador,
-                                onOpenConversation = { showChatDetail = true } // <-- go to detail
-                            )
-                        } else {
-                            DetailChat(
-                                onBack = { showChatDetail = false }            // <-- back to list
-                            )
-                        }
-                    }
+                    Destination.Chat -> ChatScreen()
 
                     Destination.Map    -> MapScreen(orquestador = orquestador)
 
@@ -113,7 +104,6 @@ fun NavShell(user: User, onLogout: () -> Unit) {
                 onContactBrigade = {
                     // Navigate to brigade contact or placeholder
                     selected = Destination.Chat
-                    showChatDetail = true
                 }
             )
         }
