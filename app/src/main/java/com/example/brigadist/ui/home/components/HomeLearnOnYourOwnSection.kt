@@ -53,49 +53,30 @@ fun HomeLearnOnYourOwnSection(
     ) {
         Column(Modifier.padding(18.dp)) {
 
-            // Title row with CTA
+            // Title row without CTA
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow, // keep or swap for MenuBook outlined
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = "Learn on Your Own",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                
-                // "View all videos" CTA in header
-                TextButton(
-                    onClick = {
-                        HomeTelemetry.trackViewAllVideosTap("home_carousel")
-                        onViewAllClick()
-                    },
+                Box(
                     modifier = Modifier
-                        .semantics { contentDescription = "View all videos" }
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "View all videos",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Learn on Your Own",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
 
             Spacer(Modifier.height(10.dp))
@@ -130,6 +111,24 @@ fun HomeLearnOnYourOwnSection(
                     }
                 }
 
+            }
+            
+            // "View All Videos" CTA below carousel
+            Spacer(Modifier.height(16.dp))
+            TextButton(
+                onClick = {
+                    HomeTelemetry.trackViewAllVideosTap("home_carousel")
+                    onViewAllClick()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "View all videos" }
+            ) {
+                Text(
+                    text = "View All Videos",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }
