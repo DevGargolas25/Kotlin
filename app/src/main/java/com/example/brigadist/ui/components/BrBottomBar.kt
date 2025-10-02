@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,7 +54,7 @@ fun BrBottomBar(
             selected = selected == Destination.Chat,
             onClick = { onSelect(Destination.Chat) },
             icon = { Icon(painterResource(R.drawable.ic_forum), contentDescription = "Chat") },
-            label = { Text("Chat") }
+            label = { Text(stringResource(R.string.chat_tab_label)) }
         )
         // SOS (center action, not a destination)
         NavigationBarItem(
