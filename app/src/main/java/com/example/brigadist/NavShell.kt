@@ -1,88 +1,38 @@
 package com.example.brigadist
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import com.auth0.android.Auth0
-import com.auth0.android.authentication.AuthenticationException
-import com.auth0.android.callback.Callback
-import com.auth0.android.provider.WebAuthProvider
-import com.auth0.android.result.Credentials
-import com.example.brigadist.auth.User
-import com.example.brigadist.auth.credentialsToUser
-import com.example.brigadist.ui.login.LoginScreen
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import com.example.brigadist.auth.User
+import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
+import com.example.brigadist.ui.map.MapScreen
+import com.example.brigadist.ui.profile.ProfileScreen
+import com.example.brigadist.ui.sos.SosConfirmationModal
+import com.example.brigadist.ui.sos.SosModal
+import com.example.brigadist.ui.sos.SosSelectTypeModal
+import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.theme.BrigadistTheme
-import com.example.brigadist.ui.theme.ThemeController
-
-class MainActivity : ComponentActivity() {
-
-    private lateinit var account: Auth0
-    private var user by mutableStateOf<User?>(null)
-    
-    private fun login() {
-        WebAuthProvider.login(account)
-            .withScheme("com.example.brigadist")
-            .withScope("openid profile email")
-            .start(this, object : Callback<Credentials, AuthenticationException> {
-                override fun onFailure(error: AuthenticationException) {
-                    // Handle error
-                }
-
-                override fun onSuccess(result: Credentials) {
-                    user = credentialsToUser(result)
-                }
-            })
-    }
-
-    private fun logout() {
-        WebAuthProvider.logout(account)
-            .withScheme("com.example.brigadist")
-            .start(this, object : Callback<Void?, AuthenticationException> {
-                override fun onFailure(error: AuthenticationException) {
-                    // Handle error
-                }
-
-                override fun onSuccess(result: Void?) {
-                    user = null
-                }
-            })
-    }
-}
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { BrigadistApp() }
-    }
-}
+import com.example.brigadist.ui.videos.VideoDetailScreen
+import com.example.brigadist.ui.videos.VideosRoute
+import com.example.brigadist.ui.videos.model.VideoUi
 
 @Composable
-fun BrigadistApp() {
-    val context = LocalContext.current
-    val themeController = remember { ThemeController(context) }
-    val themeState by themeController.themeState.collectAsState()
-    
-    
-    // Handle app lifecycle for sensor management
-    DisposableEffect(Unit) {
-        themeController.onAppResumed()
-        onDispose {
-            themeController.onAppPaused()
-        }
-    }
+fun NavShell(user: User, onLogout: () -> Unit) {
+    val orquestador = Orquestador(user)
 
-    BrigadistTheme(darkTheme = themeState.isDark) {
+    BrigadistTheme {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
+        var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
@@ -96,7 +46,7 @@ fun BrigadistApp() {
                         selected = dest
                         // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
-
+                        if (dest == Destination.Chat) showChatDetail = false
                     },
                     onSosClick = { showSosModal = true }
                 )
@@ -116,39 +66,41 @@ fun BrigadistApp() {
                                 onNavigateToVideos = { selected = Destination.Videos }
                             )
                         } else {
-                            ProfileScreen()                                // <<< show Profile
+                            ProfileScreen(orquestador = orquestador, onLogout = onLogout)
                         }
                     }
-                    Destination.Chat -> ChatScreen()
+                    Destination.Chat -> {
+                        if (!showChatDetail) {
+                            ChatScreen(
+                                orquestador = orquestador,
+                                onOpenConversation = { showChatDetail = true } // <-- go to detail
+                            )
+                        } else {
+                            DetailChat(
+                                onBack = { showChatDetail = false }            // <-- back to list
+                            )
+                        }
+                    }
 
-                    Destination.Map    -> MapScreen()
+                    Destination.Map    -> MapScreen(orquestador = orquestador)
 
 
 
                     Destination.Videos -> {
                         if (selectedVideo == null) {
-                            VideosRoute(onVideoClick = { video -> selectedVideo = video })
+                            VideosRoute(
+                                orquestador = orquestador,
+                                onVideoClick = { video -> selectedVideo = video }
+                            )
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
                     }
 
 
-        account = Auth0(
-            getString(R.string.auth0_client_id),
-            getString(R.string.auth0_domain)
-        )
-
-        setContent {
-            BrigadistTheme {
-                if (user == null) {
-                    LoginScreen(onLoginClick = { login() })
-                } else {
-                    NavShell(user = user!!, onLogout = { logout() })
                 }
             }
         }
-    }
 
         // SOS Modal
         if (showSosModal) {
@@ -161,26 +113,39 @@ fun BrigadistApp() {
                 onContactBrigade = {
                     // Navigate to brigade contact or placeholder
                     selected = Destination.Chat
+                    showChatDetail = true
                 }
+            )
+        }
 
-                override fun onSuccess(result: Credentials) {
-                    user = credentialsToUser(result)
+        // SOS Select Type Modal (Step 2)
+        if (showSosSelectTypeModal) {
+            SosSelectTypeModal(
+                onDismiss = { showSosSelectTypeModal = false },
+                onTypeSelected = { emergencyType ->
+                    // Show Step 3: Confirmation modal
+                    selectedEmergencyType = emergencyType
+                    showSosConfirmationModal = true
                 }
-            })
-    }
+            )
+        }
 
         // SOS Confirmation Modal (Step 3)
         if (showSosConfirmationModal && selectedEmergencyType != null) {
             SosConfirmationModal(
                 emergencyType = selectedEmergencyType!!,
-                onDismiss = {
+                onDismiss = { 
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
+            )
+        }
+    }
+}
 
-                override fun onSuccess(result: Void?) {
-                    user = null
-                }
-            })
+@Composable
+private fun Placeholder(text: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }

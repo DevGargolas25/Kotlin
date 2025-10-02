@@ -16,9 +16,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        // Google Maps API Key placeholder
+
+        // Maps Placeholders
         manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
+
+        // Auth0 Placeholders
+        manifestPlaceholders["auth0Domain"] = "dev-qjv13guqjegxhr3l.us.auth0.com"
+        manifestPlaceholders["auth0Scheme"] = "com.example.brigadist"
     }
 
     buildTypes {
@@ -67,5 +71,9 @@ dependencies {
     
     // Permission handling
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // Auth0 dependency
+    implementation(libs.auth0)
+    implementation(libs.java.jwt)
 
 }

@@ -12,60 +12,52 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.example.brigadist.Orquestador
 import com.example.brigadist.ui.map.components.RecenterButton
 import com.example.brigadist.ui.map.components.MapTypeSelector
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MapScreen() {
-    val viewModel = remember { MapViewModel() }
+fun MapScreen(orquestador: Orquestador) {
     val context = LocalContext.current
-    val cameraPosition by viewModel.cameraPosition.collectAsState()
-    val mapType by viewModel.mapType.collectAsState()
-    val userLocation by viewModel.userLocation.collectAsState()
-    val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
-    
-    // Location permissions
+    var cameraPosition by remember { mutableStateOf(orquestador.getDefaultCameraPosition()) }
+    var mapType by remember { mutableStateOf(MapType.NORMAL) }
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var hasLocationPermission by remember { mutableStateOf(false) }
+
     val locationPermissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             android.Manifest.permission.ACCESS_FINE_LOCATION,
             android.Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
-    
-    // Update permission state
+
     LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
-        viewModel.setLocationPermission(locationPermissionsState.allPermissionsGranted)
+        hasLocationPermission = locationPermissionsState.allPermissionsGranted
     }
-    
-    // Track map opened
+
     LaunchedEffect(Unit) {
         MapTelemetry.trackMapOpened(hasLocationPermission, mapType)
     }
-    
-    // Get user location when permission is granted
+
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
             try {
                 val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                     location?.let {
-                        val latLng = LatLng(it.latitude, it.longitude)
-                        viewModel.updateUserLocation(latLng)
+                        userLocation = LatLng(it.latitude, it.longitude)
                     }
                 }
             } catch (e: SecurityException) {
-                // Permission was revoked
-                viewModel.setLocationPermission(false)
+                hasLocationPermission = false
             }
         }
     }
-    
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Google Map
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = CameraPositionState(
@@ -76,27 +68,25 @@ fun MapScreen() {
                 isMyLocationEnabled = hasLocationPermission
             )
         )
-        
-        // Map Type Selector
+
         MapTypeSelector(
             selectedMapType = mapType,
             onMapTypeSelected = { newMapType ->
-                viewModel.setMapType(newMapType)
+                mapType = newMapType
                 MapTelemetry.trackMapTypeChanged(newMapType)
             },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
         )
-        
-        // Recenter Button
+
         RecenterButton(
             onClick = {
                 if (hasLocationPermission && userLocation != null) {
-                    viewModel.recenterOnUser()
+                    cameraPosition = CameraPosition.builder().target(userLocation!!).zoom(16f).build()
                     MapTelemetry.trackRecenterTapped(true)
                 } else {
-                    viewModel.recenterOnDefault()
+                    cameraPosition = orquestador.getDefaultCameraPosition()
                     MapTelemetry.trackRecenterTapped(false)
                 }
             },
@@ -104,8 +94,7 @@ fun MapScreen() {
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         )
-        
-        // Permission rationale card
+
         if (!hasLocationPermission && locationPermissionsState.shouldShowRationale) {
             Card(
                 modifier = Modifier
