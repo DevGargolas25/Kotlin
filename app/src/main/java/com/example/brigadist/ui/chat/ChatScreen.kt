@@ -6,28 +6,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
+import com.example.brigadist.Orquestador
 import com.example.brigadist.R
 import com.example.brigadist.ui.chat.components.ChatTopBar
 import com.example.brigadist.ui.chat.components.ConversationList
-import com.example.brigadist.ui.chat.model.ConversationUi
 
 @Composable
 fun ChatScreen(
+    orquestador: Orquestador,
     onOpenConversation: () -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
 
-    // Sample data like your screenshot
-    val conversations = listOf(
-        ConversationUi(1, "Brigade Assistant",
-            "The main assembly points are: Main Campus: Front park…", "10:32 AM", 2),
-        ConversationUi(2, "Brigade Team",
-            "Meeting tonight at 7 PM in room 203. Please confirm y…", "9:45 AM", 0),
-        ConversationUi(3, "Brigade Alerts",
-            "Weather alert: Strong winds expected this afternoon. St…", "Yesterday", 1),
-    )
+    val conversations = orquestador.getConversations()
 
     Column(modifier = Modifier.fillMaxSize()) {
         ChatTopBar(
@@ -42,7 +33,7 @@ fun ChatScreen(
             },
             iconById = { convo ->
                 when (convo.id) {
-                    1 -> R.drawable.ic_assistant   // add these vector assets or change names
+                    1 -> R.drawable.ic_assistant
                     2 -> R.drawable.ic_group
                     3 -> R.drawable.ic_bubble
                     else -> null

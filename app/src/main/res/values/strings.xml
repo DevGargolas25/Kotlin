@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Brigadist</string>
+    <string name="auth0_client_id">rbSG0mVjGwC67ZU04cp9pCRIlvzMBNec</string>
+    <string name="auth0_domain">dev-qjv13guqjegxhr3l.us.auth0.com</string>
 </resources>
