@@ -26,6 +26,7 @@ import com.example.brigadist.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
 import com.example.brigadist.ui.sos.SosConfirmationModal
+import com.example.brigadist.ui.sos.SosContactBrigadeScreen
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.theme.BrigadistTheme
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -140,6 +141,7 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
         var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
+        var showContactBrigadeScreen by rememberSaveable { mutableStateOf(false) }
         var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
 
         Scaffold(
@@ -194,10 +196,7 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
             SosModal(
                 onDismiss = { showSosModal = false },
                 onSendEmergencyAlert = { showSosSelectTypeModal = true },
-                onContactBrigade = {
-                    selected = Destination.Chat
-                    showChatDetail = true
-                }
+                onContactBrigade = { showContactBrigadeScreen = true }
             )
         }
 
@@ -220,6 +219,14 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
+            )
+        }
+        
+        // Contact Brigade Screen
+        if (showContactBrigadeScreen) {
+            SosContactBrigadeScreen(
+                orquestador = orquestador,
+                onBack = { showContactBrigadeScreen = false }
             )
         }
     }

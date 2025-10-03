@@ -15,4 +15,9 @@
     
     <!-- Instagram URL -->
     <string name="instagram_url">https://www.instagram.com/beuniandes/?hl=en</string>
+    
+    <!-- Contact Brigade tabs -->
+    <string name="contact_brigade_tab_location">Location</string>
+    <string name="contact_brigade_tab_assistant">Assistant</string>
+    <string name="contact_brigade_tab_medical">Medical</string>
 </resources>
