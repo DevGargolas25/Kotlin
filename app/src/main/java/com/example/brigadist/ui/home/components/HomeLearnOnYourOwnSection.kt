@@ -29,7 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.example.brigadist.ui.home.HomeTelemetry
 import com.example.brigadist.ui.home.model.HomeSamples.videos
 import com.example.brigadist.ui.home.model.VideoCard
 
@@ -50,8 +53,11 @@ fun HomeLearnOnYourOwnSection(
     ) {
         Column(Modifier.padding(18.dp)) {
 
-            // Title row
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Title row without CTA
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -60,7 +66,7 @@ fun HomeLearnOnYourOwnSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow, // keep or swap for MenuBook outlined
+                        imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.secondary
                     )
@@ -105,32 +111,24 @@ fun HomeLearnOnYourOwnSection(
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
-
-                // Centered "View All Videos"
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    TextButton(
-                        onClick = onViewAllClick,
-                        modifier = Modifier
-                            .height(48.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "View all videos",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                    }
-                }
+            }
+            
+            // "View All Videos" CTA below carousel
+            Spacer(Modifier.height(16.dp))
+            TextButton(
+                onClick = {
+                    HomeTelemetry.trackViewAllVideosTap("home_carousel")
+                    onViewAllClick()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "View all videos" }
+            ) {
+                Text(
+                    text = "View All Videos",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }

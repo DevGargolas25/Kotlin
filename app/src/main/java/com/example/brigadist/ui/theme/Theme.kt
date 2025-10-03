@@ -1,6 +1,7 @@
 package com.example.brigadist.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -35,13 +36,45 @@ private val BrigadistLightColors = lightColorScheme(
     onError = Color.White
 )
 
+private val BrigadistDarkColors = darkColorScheme(
+    primary = TealPrimaryDark,
+    onPrimary = Color.Black,
+    primaryContainer = TealContainerDark,
+    onPrimaryContainer = DeepPurpleTextDark,
+
+    secondary = GreenSecondaryDark,
+    onSecondary = Color.Black,
+    secondaryContainer = Color(0xFF1A2D25),
+    onSecondaryContainer = DeepPurpleTextDark,
+
+    tertiary = PeachTertiaryDark,
+    onTertiary = Color.Black,
+
+    background = AquaSoftSurfaceDark,
+    onBackground = DeepPurpleTextDark,
+
+    surface = AquaSoftSurfaceDark,
+    onSurface = DeepPurpleTextDark,
+
+    surfaceVariant = Color(0xFF1A2A2B),
+    onSurfaceVariant = DeepPurpleTextDark.copy(alpha = 0.7f),
+
+    outline = OutlineAquaDark.copy(alpha = 0.5f),
+    outlineVariant = OutlineAquaDark,
+    
+    error = ErrorRedDark,
+    onError = Color.Black
+)
+
 @Composable
 fun BrigadistTheme(
     darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val colorScheme = if (darkTheme) BrigadistDarkColors else BrigadistLightColors
+    
     MaterialTheme(
-        colorScheme = BrigadistLightColors,
+        colorScheme = colorScheme,
         content = content
     )
 }

@@ -1,6 +1,5 @@
 package com.example.brigadist.ui.profile
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +23,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import com.example.brigadist.Orquestador
+import com.example.brigadist.ui.profile.model.UserProfile
 
 /**
  * Profile screen displaying user information such as personal details, emergency contacts,
@@ -34,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
+    orquestador: Orquestador,
+    onLogout: () -> Unit,
     onNavigateHome: () -> Unit = {},
     onNavigateChat: () -> Unit = {},
     onNavigateMap: () -> Unit = {},
@@ -42,6 +45,12 @@ fun ProfileScreen(
     onEditProfile: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    val userProfile = orquestador.getUserProfile()
+    val emergencyContact = orquestador.getEmergencyContact()
+    val medicalInfo = orquestador.getMedicalInfo()
+    val allergies = orquestador.getAllergies()
+    val medications = orquestador.getMedications()
+
     Scaffold(
 
         modifier = modifier
@@ -54,7 +63,7 @@ fun ProfileScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             // Header: avatar, name, role and edit button
-            ProfileHeader(onEdit = onEditProfile)
+            ProfileHeader(userProfile = userProfile, onEdit = onEditProfile)
             Spacer(modifier = Modifier.height(16.dp))
 
             // Personal Information Section
@@ -63,10 +72,10 @@ fun ProfileScreen(
                 iconTint = MaterialTheme.colorScheme.primary,
                 title = "Personal Information"
             ) {
-                FieldRow(label = "Full Name", value = "John Smith")
-                FieldRow(label = "Student ID", value = "SB2024001")
-                FieldRow(label = "Email", value = "john.smith@university.edu")
-                FieldRow(label = "Phone", value = "+1 (555) 123-4567")
+                FieldRow(label = "Full Name", value = userProfile.fullName)
+                FieldRow(label = "Student ID", value = userProfile.studentId)
+                FieldRow(label = "Email", value = userProfile.email)
+                FieldRow(label = "Phone", value = userProfile.phone)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -76,9 +85,9 @@ fun ProfileScreen(
                 iconTint = MaterialTheme.colorScheme.secondary,
                 title = "Emergency Contacts"
             ) {
-                FieldRow(label = "Primary Contact", value = "Jane Smith (Mother)")
-                FieldRow(label = "Primary Phone", value = "+1 (555) 987-6543")
-                FieldRow(label = "Secondary Contact", value = "")
+                FieldRow(label = "Primary Contact", value = emergencyContact.primaryContactName)
+                FieldRow(label = "Primary Phone", value = emergencyContact.primaryContactPhone)
+                FieldRow(label = "Secondary Contact", value = emergencyContact.secondaryContactName)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -88,10 +97,10 @@ fun ProfileScreen(
                 iconTint = MaterialTheme.colorScheme.primary,
                 title = "Medical Information"
             ) {
-                FieldRow(label = "Blood Type", value = "O+")
-                FieldRow(label = "Primary Physician", value = "Dr. Sarah Johnson")
-                FieldRow(label = "Physician Phone", value = "+1 (555) 234-5678")
-                FieldRow(label = "Insurance Provider", value = "University Health Plan")
+                FieldRow(label = "Blood Type", value = medicalInfo.bloodType)
+                FieldRow(label = "Primary Physician", value = medicalInfo.primaryPhysician)
+                FieldRow(label = "Physician Phone", value = medicalInfo.physicianPhone)
+                FieldRow(label = "Insurance Provider", value = medicalInfo.insuranceProvider)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -101,10 +110,10 @@ fun ProfileScreen(
                 iconTint = MaterialTheme.colorScheme.primary,
                 title = "Allergies"
             ) {
-                FieldRow(label = "Food Allergies", value = "Peanuts, Shellfish")
-                FieldRow(label = "Environmental Allergies", value = "Pollen, Dust mites")
-                FieldRow(label = "Drug Allergies", value = "")
-                FieldRow(label = "Severity Notes", value = "Carry EpiPen for severe reactions")
+                FieldRow(label = "Food Allergies", value = allergies.foodAllergies)
+                FieldRow(label = "Environmental Allergies", value = allergies.environmentalAllergies)
+                FieldRow(label = "Drug Allergies", value = allergies.drugAllergies)
+                FieldRow(label = "Severity Notes", value = allergies.severityNotes)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -114,10 +123,15 @@ fun ProfileScreen(
                 iconTint = MaterialTheme.colorScheme.secondary,
                 title = "Current Medications"
             ) {
-                FieldRow(label = "Daily Medications", value = "Inhaler (Albuterol) - As needed for asthma")
-                FieldRow(label = "Emergency Medications", value = "EpiPen - For severe allergic reactions")
-                FieldRow(label = "Vitamins/Supplements", value = "Vitamin D3 - 1000 IU daily")
-                FieldRow(label = "Special Instructions", value = "Keep inhaler and EpiPen accessible at all times")
+                FieldRow(label = "Daily Medications", value = medications.dailyMedications)
+                FieldRow(label = "Emergency Medications", value = medications.emergencyMedications)
+                FieldRow(label = "Vitamins/Supplements", value = medications.vitaminsSupplements)
+                FieldRow(label = "Special Instructions", value = medications.specialInstructions)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = onLogout) {
+                Text("Log Out")
             }
         }
     }
@@ -129,7 +143,7 @@ fun ProfileScreen(
  * design.
  */
 @Composable
-fun ProfileHeader(onEdit: () -> Unit = {}) {
+fun ProfileHeader(userProfile: UserProfile, onEdit: () -> Unit = {}) {
     val avatarBackground = MaterialTheme.colorScheme.primaryContainer
     val avatarTint = MaterialTheme.colorScheme.primary
     val nameColour = MaterialTheme.colorScheme.onSurface
@@ -156,7 +170,7 @@ fun ProfileHeader(onEdit: () -> Unit = {}) {
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = "John Smith",
+                text = userProfile.fullName,
                 color = nameColour,
                 style = MaterialTheme.typography.titleLarge,
                 fontSize = 20.sp,

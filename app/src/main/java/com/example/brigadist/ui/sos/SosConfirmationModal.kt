@@ -1,7 +1,6 @@
 package com.example.brigadist.ui.sos
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,80 +40,67 @@ fun SosConfirmationModal(
         },
         properties = DialogProperties(
             dismissOnBackPress = true,
-            dismissOnClickOutside = true
+            dismissOnClickOutside = false
         )
     ) {
-        // Scrim background
-        Box(
+        // Modal content without scrim
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable { 
-                    SosTelemetry.trackSosConfirmationDismissed("scrim")
-                    onDismiss() 
-                },
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Transparent
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            // Modal content
-            Card(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .wrapContentHeight()
-                    .clickable(enabled = false) { }, // Prevent clicks from bubbling to scrim
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
             ) {
+                // Green header band with close button
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Header content
+                    SosConfirmationHeader()
+                    
+                    // Close button positioned in top-right
+                    IconButton(
+                        onClick = {
+                            SosTelemetry.trackSosConfirmationDismissed("x")
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                // Divider
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    thickness = 1.dp
+                )
+                
+                // White content area
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Green header band with close button
-                    Box(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        // Header content
-                        SosConfirmationHeader()
-                        
-                        // Close button positioned in top-right
-                        IconButton(
-                            onClick = {
-                                SosTelemetry.trackSosConfirmationDismissed("x")
-                                onDismiss()
-                            },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                    
-                    // Divider
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                        thickness = 1.dp
-                    )
-                    
-                    // White content area
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Type-specific confirmation message
-                        SosConfirmationMessage(emergencyType)
-                    }
+                    // Type-specific confirmation message
+                    SosConfirmationMessage(emergencyType)
                 }
             }
         }

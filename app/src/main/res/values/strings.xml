@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Brigadist</string>
+    <string name="auth0_client_id">rbSG0mVjGwC67ZU04cp9pCRIlvzMBNec</string>
+    <string name="auth0_domain">dev-qjv13guqjegxhr3l.us.auth0.com</string>
+    
+    <!-- Chat strings -->
+    <string name="chat_tab_label">Chat</string>
+    <string name="chat_screen_title">Chat</string>
+    <string name="chat_input_hint">Message the chat…</string>
+    <string name="chat_send_button">Send</string>
+    <string name="chat_send_button_content_description">Send message</string>
+    <string name="chat_empty_state">Start chatting to get help</string>
+    <string name="chat_typing_indicator">Assistant is typing…</string>
+    <string name="chat_message_content_description">Message from %1$s</string>
 </resources>

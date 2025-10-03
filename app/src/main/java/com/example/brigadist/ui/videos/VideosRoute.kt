@@ -2,19 +2,19 @@ package com.example.brigadist.ui.videos
 
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.brigadist.Orquestador
 import com.example.brigadist.ui.videos.model.VideoUi
-import com.example.brigadist.ui.videos.model.mockVideos
 
 @Composable
 fun VideosRoute(
+    orquestador: Orquestador,
     onVideoClick: (VideoUi) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val categories = listOf("All", "Safety", "Medical", "Training", "Emergency")
+    val categories = orquestador.getVideoCategories()
     var selectedCategory by rememberSaveable { mutableStateOf(categories.first()) }
 
-    // stable mock list
-    val allVideos: List<VideoUi> = remember { mockVideos() }
+    val allVideos: List<VideoUi> = orquestador.getVideos()
 
     // filter by category + query
     val filtered by remember(query, selectedCategory, allVideos) {
