@@ -1,55 +1,29 @@
 package com.example.brigadist.ui.home
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import com.example.brigadist.ui.home.model.HomeSamples
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.brigadist.ui.home.model.HomeUiState
-import com.example.brigadist.ui.home.model.VideoCard
+import com.example.brigadist.ui.videos.VideosViewModel
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun HomeRoute(
-    onOpenVideo: (VideoCard) -> Unit = {},
+    onOpenVideo: (Video) -> Unit = {},
     onOpenProfile: () -> Unit = {},
-    onNavigateToVideos: () -> Unit = {}
+    onNavigateToVideos: () -> Unit = {},
+    videosViewModel: VideosViewModel = viewModel()
 ) {
-    var state by remember {
-        mutableStateOf(
-            HomeUiState(
-                notifications = HomeSamples.notifications,
-                videos = HomeSamples.videos
-            )
-        )
-    }
-    var showMenu by remember { mutableStateOf(false) }
-    var showNotifications by remember { mutableStateOf(false) }
+    val videos by videosViewModel.videos.collectAsState()
+    val homeUiState = HomeUiState(
+        videos = videos
+    )
 
     HomeScreen(
-        state = state,
-        onTickNotification = {
-            if (state.notifications.isNotEmpty()) {
-                val next = (state.currentNotificationIndex + 1) % state.notifications.size
-                state = state.copy(currentNotificationIndex = next)
-            }
-        },
-        onShowAllNotifications = { showNotifications = true },
+        state = homeUiState,
         onOpenProfileSettings = onOpenProfile,
-        onLearnMore = { /* navigate to join page */ },
         onVideoClick = onOpenVideo,
         onNavigateToVideos = onNavigateToVideos
     )
-
-    if (showMenu) {
-        AlertDialog(onDismissRequest = { showMenu = false }, confirmButton = {},
-            title = { Text("Profile & Settings") }, text = { Text("Manage your account and preferences") })
-    }
-    if (showNotifications) {
-        AlertDialog(onDismissRequest = { showNotifications = false }, confirmButton = {},
-            title = { Text("All Notifications") }, text = {
-                Column {
-                    state.notifications.forEach { Text("• $it") }
-                }
-            })
-    }
 }

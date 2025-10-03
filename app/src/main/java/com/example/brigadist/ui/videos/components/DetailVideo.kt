@@ -1,46 +1,55 @@
 package com.example.brigadist.ui.videos.components
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.R
-import com.example.brigadist.ui.videos.model.VideoUi
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
-fun DetailVideo(video: VideoUi, modifier: Modifier = Modifier) {
-    val minutes = video.durationSec / 60
-    val seconds = video.durationSec % 60
+fun DetailVideo(video: Video, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(video.url))
+            prepare()
+            playWhenReady = true
+        }
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // Thumbnail / Play section
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_play_circle),
-                contentDescription = "Play video",
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(64.dp)
+        // Video player
+        DisposableEffect(
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+                factory = {
+                    PlayerView(it).apply {
+                        player = exoPlayer
+                    }
+                }
             )
+        ) {
+            onDispose {
+                exoPlayer.release()
+            }
         }
 
         Column(
@@ -50,7 +59,6 @@ fun DetailVideo(video: VideoUi, modifier: Modifier = Modifier) {
             Text(
                 text = video.title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(Modifier.height(8.dp))
@@ -60,39 +68,7 @@ fun DetailVideo(video: VideoUi, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.video_views),
-                        contentDescription = "Views",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = video.viewsText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.access_time),
-                        contentDescription = "Age",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = video.ageText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Text(
-                    text = "%d:%02d".format(minutes, seconds),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // You can add views, likes, etc. here if needed
             }
 
             Spacer(Modifier.height(16.dp))
@@ -101,7 +77,6 @@ fun DetailVideo(video: VideoUi, modifier: Modifier = Modifier) {
             Text(
                 text = "Description",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(Modifier.height(8.dp))

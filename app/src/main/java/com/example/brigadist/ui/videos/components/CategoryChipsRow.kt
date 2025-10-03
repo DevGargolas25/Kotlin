@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun CategoryChipsRow(
     categories: List<String>,
-    selected: String,
+    selected: Set<String>,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -20,7 +20,7 @@ fun CategoryChipsRow(
         categories.forEachIndexed { i, cat ->
             CategoryChip(
                 text = cat,
-                selected = cat == selected,
+                selected = selected.contains(cat),
                 onClick = { onSelected(cat) }
             )
             if (i != categories.lastIndex) Spacer(Modifier.width(12.dp))

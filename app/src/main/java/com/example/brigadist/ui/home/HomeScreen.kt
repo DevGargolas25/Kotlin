@@ -11,19 +11,17 @@ import com.example.brigadist.ui.home.components.HomeLearnOnYourOwnSection
 import com.example.brigadist.ui.home.components.HomeNotificationBar
 import com.example.brigadist.ui.home.components.HomeJoinBrigadeCard
 import com.example.brigadist.ui.home.model.HomeUiState
-import com.example.brigadist.ui.home.model.VideoCard
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.SoftWhite
+import com.example.brigadist.ui.videos.model.Video
 import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
     state: HomeUiState,
-    onTickNotification: () -> Unit,
-    onShowAllNotifications: () -> Unit,
+    onTickNotification: () -> Unit = {},
+    onShowAllNotifications: () -> Unit = {},
     onOpenProfileSettings: () -> Unit,
-    onLearnMore: () -> Unit,
-    onVideoClick: (VideoCard) -> Unit,
+    onLearnMore: () -> Unit = {},
+    onVideoClick: (Video) -> Unit,
     onNavigateToVideos: () -> Unit
 ) {
     LaunchedEffect(state.notifications) {
@@ -56,4 +54,3 @@ fun HomeScreen(
 
     }
 }
-

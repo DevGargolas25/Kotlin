@@ -32,15 +32,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.home.HomeTelemetry
-import com.example.brigadist.ui.home.model.HomeSamples.videos
-import com.example.brigadist.ui.home.model.VideoCard
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun HomeLearnOnYourOwnSection(
     onViewAllClick: () -> Unit = {},
-    videos: List<VideoCard> = emptyList(),
-    onVideoClick: (VideoCard) -> Unit = {}
+    videos: List<Video> = emptyList(),
+    onVideoClick: (Video) -> Unit = {}
 ) {
     // Same white container as Join card
     Card(
@@ -116,10 +114,7 @@ fun HomeLearnOnYourOwnSection(
             // "View All Videos" CTA below carousel
             Spacer(Modifier.height(16.dp))
             TextButton(
-                onClick = {
-                    HomeTelemetry.trackViewAllVideosTap("home_carousel")
-                    onViewAllClick()
-                },
+                onClick = onViewAllClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = "View all videos" }
