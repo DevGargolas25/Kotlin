@@ -22,7 +22,7 @@ import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.theme.BrigadistTheme
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
-import com.example.brigadist.ui.videos.model.VideoUi
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun NavShell(
@@ -35,7 +35,7 @@ fun NavShell(
 
     BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
-        var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
+        var selectedVideo by remember { mutableStateOf<Video?>(null) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
@@ -65,7 +65,8 @@ fun NavShell(
                         if (!showProfile) {
                             HomeRoute(
                                 onOpenProfile = { showProfile = true },    // <<< navigate to Profile
-                                onNavigateToVideos = { selected = Destination.Videos }
+                                onNavigateToVideos = { selected = Destination.Videos },
+                                onOpenVideo = { video -> selectedVideo = video }
                             )
                         } else {
                             ProfileScreen(orquestador = orquestador, onLogout = onLogout)
@@ -80,7 +81,6 @@ fun NavShell(
                     Destination.Videos -> {
                         if (selectedVideo == null) {
                             VideosRoute(
-                                orquestador = orquestador,
                                 onVideoClick = { video -> selectedVideo = video }
                             )
                         } else {

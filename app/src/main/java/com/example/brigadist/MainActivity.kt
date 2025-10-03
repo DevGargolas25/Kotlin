@@ -28,7 +28,7 @@ import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.theme.BrigadistTheme
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
-import com.example.brigadist.ui.videos.model.VideoUi
+import com.example.brigadist.ui.videos.model.Video
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -92,7 +92,7 @@ class MainActivity : ComponentActivity() {
 fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
     BrigadistTheme {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
-        var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
+        var selectedVideo by remember { mutableStateOf<Video?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
@@ -124,7 +124,8 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                         if (!showProfile) {
                             HomeRoute(
                                 onOpenProfile = { showProfile = true },
-                                onNavigateToVideos = { selected = Destination.Videos }
+                                onNavigateToVideos = { selected = Destination.Videos },
+                                onOpenVideo = { video -> selectedVideo = video }
                             )
                         } else {
                             ProfileScreen(orquestador = orquestador, onLogout = onLogout)
@@ -137,7 +138,7 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
 
                     Destination.Videos -> {
                         if (selectedVideo == null) {
-                            VideosRoute(orquestador = orquestador, onVideoClick = { video -> selectedVideo = video })
+                            VideosRoute(onVideoClick = { video -> selectedVideo = video })
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }

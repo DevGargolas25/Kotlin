@@ -15,12 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.ui.theme.DeepPurple
 import com.example.brigadist.ui.theme.LightAqua
-import com.example.brigadist.ui.videos.model.VideoUi
-import com.example.brigadist.ui.videos.model.formatAsDuration
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun VideoCardItem(
-    video: VideoUi,
+    video: Video,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -56,7 +55,7 @@ fun VideoCardItem(
                         .padding(end = 12.dp)
                 ) {
                     Text(
-                        text = video.durationSec.formatAsDuration(),
+                        text = video.duration,
                         color = Color.White,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
@@ -94,13 +93,13 @@ fun VideoCardItem(
                     )
                     Text("  •  ", color = DeepPurple.copy(alpha = 0.5f))
                     Text(
-                        text = video.viewsText,
+                        text = "${video.views} views",
                         color = DeepPurple.copy(alpha = 0.9f),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text("  •  ", color = DeepPurple.copy(alpha = 0.5f))
                     Text(
-                        text = video.ageText,
+                        text = video.publishedAt,
                         color = DeepPurple.copy(alpha = 0.9f),
                         style = MaterialTheme.typography.bodyMedium
                     )

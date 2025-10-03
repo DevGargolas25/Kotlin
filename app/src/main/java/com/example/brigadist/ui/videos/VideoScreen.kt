@@ -5,26 +5,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.brigadist.ui.theme.LightAqua
 import com.example.brigadist.ui.videos.components.CategoryChipsRow
-import com.example.brigadist.ui.videos.components.VideoSearchBar
 import com.example.brigadist.ui.videos.components.VideoCardItem
-import com.example.brigadist.ui.videos.model.VideoUi
+import com.example.brigadist.ui.videos.components.VideoSearchBar
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun VideosScreen(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    categories: List<String>,
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-
-    // NEW:
-    videos: List<VideoUi>,
-    onVideoClick: (VideoUi) -> Unit
+    viewModel: VideosViewModel = viewModel(),
+    onVideoClick: (Video) -> Unit
 ) {
+    val searchText by viewModel.searchText.collectAsState()
+    val selectedTags by viewModel.selectedTags.collectAsState()
+    val filteredVideos by viewModel.filteredVideos.collectAsState()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 96.dp) // keep above bottom bar
@@ -38,8 +38,8 @@ fun VideosScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     VideoSearchBar(
-                        value = query,
-                        onValueChange = onQueryChange,
+                        value = searchText,
+                        onValueChange = viewModel::onSearchTextChange,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -47,17 +47,18 @@ fun VideosScreen(
         }
         item {
             Spacer(Modifier.height(12.dp))
+            val allTags = viewModel.videos.collectAsState().value.flatMap { it.tags }.distinct()
             CategoryChipsRow(
-                categories = categories,
-                selected = selectedCategory,
-                onSelected = onCategorySelected,
+                categories = allTags,
+                selected = selectedTags,
+                onSelected = { viewModel.onTagSelected(it) },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(8.dp))
         }
 
         // --- Render the list of cards
-        items(videos, key = { it.id }) { video ->
+        items(filteredVideos, key = { it.id }) { video ->
             VideoCardItem(
                 video = video,
                 onClick = { onVideoClick(video) },

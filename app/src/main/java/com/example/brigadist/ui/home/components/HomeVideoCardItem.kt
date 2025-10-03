@@ -21,12 +21,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.home.model.VideoCard
 import com.example.brigadist.ui.theme.DeepPurple
 import com.example.brigadist.ui.theme.LightAqua
+import com.example.brigadist.ui.videos.model.Video
 
 @Composable
-fun HomeVideoCardItem(video: VideoCard,
+fun HomeVideoCardItem(video: Video,
                       onClick: () -> Unit = {}
 ) {
     // Soft lilac card like the mock tiles, with rounded corners and subtle elevation

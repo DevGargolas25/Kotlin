@@ -10,12 +10,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.brigadist.ui.theme.LightAqua
 import com.example.brigadist.ui.videos.components.DetailVideo
-import com.example.brigadist.ui.videos.model.VideoUi
+import com.example.brigadist.ui.videos.model.Video
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoDetailScreen(
-    video: VideoUi,
+    video: Video,
     onBack: () -> Unit
 ) {
     Scaffold(

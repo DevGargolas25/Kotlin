@@ -99,4 +99,11 @@ dependencies {
     // OkHttp for Groq API
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // Media3 for video playback
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+
+    // ViewModel Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.3")
+
 }
