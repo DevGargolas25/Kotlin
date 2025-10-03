@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.brigadist.ui.sos.components.EmergencyType
-import com.example.brigadist.ui.theme.*
 
 @Composable
 fun SosConfirmationModal(
@@ -80,14 +79,14 @@ fun SosConfirmationModal(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSecondary
                         )
                     }
                 }
                 
                 // Divider
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    color = MaterialTheme.colorScheme.outline,
                     thickness = 1.dp
                 )
                 
@@ -114,7 +113,7 @@ private fun SosConfirmationHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(GreenSecondary) // Success green header
+            .background(MaterialTheme.colorScheme.secondary) // Success green header
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -123,7 +122,7 @@ private fun SosConfirmationHeader(
             modifier = Modifier
                 .size(64.dp)
                 .background(
-                    Color.White.copy(alpha = 0.15f), // Light tint over green
+                    MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.2f), // Light tint over secondary
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -131,7 +130,7 @@ private fun SosConfirmationHeader(
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = "Success",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onSecondary,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -142,7 +141,7 @@ private fun SosConfirmationHeader(
             text = "Alert Sent Successfully",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSecondary,
             textAlign = TextAlign.Center
         )
 
@@ -151,7 +150,7 @@ private fun SosConfirmationHeader(
         Text(
             text = "Emergency personnel have been notified",
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White.copy(alpha = 0.8f),
+            color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.9f),
             textAlign = TextAlign.Center
         )
     }
@@ -171,14 +170,14 @@ private fun SosConfirmationMessage(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = AlertMedicalContainer.copy(alpha = 0.3f) // Very light success container
+            containerColor = MaterialTheme.colorScheme.surfaceVariant // Solid surface variant for good contrast
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
-            color = OnAlertMedicalContainer,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(16.dp)
         )

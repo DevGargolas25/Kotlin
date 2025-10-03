@@ -169,7 +169,11 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                             HomeRoute(
                                 onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos },
-                                onOpenVideo = { video -> selectedVideo = video }
+                                onOpenVideo = { video -> selectedVideo = video },
+                                onVideoClickFromCarousel = { video -> 
+                                    selectedVideo = video
+                                    selected = Destination.Videos
+                                }
                             )
                         } else {
                             ProfileScreen(orquestador = orquestador, onLogout = onLogout)

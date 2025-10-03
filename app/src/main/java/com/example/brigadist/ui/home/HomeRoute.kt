@@ -19,6 +19,7 @@ fun HomeRoute(
     onOpenVideo: (Video) -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onNavigateToVideos: () -> Unit = {},
+    onVideoClickFromCarousel: (Video) -> Unit = {},
     videosViewModel: VideosViewModel = viewModel()
 ) {
     val videos by videosViewModel.videos.collectAsState()
@@ -41,7 +42,7 @@ fun HomeRoute(
     HomeScreen(
         state = homeUiState,
         onOpenProfileSettings = onOpenProfile,
-        onVideoClick = onOpenVideo,
+        onVideoClick = onVideoClickFromCarousel,
         onNavigateToVideos = onNavigateToVideos,
         onLearnMore = ::openInstagram
     )
