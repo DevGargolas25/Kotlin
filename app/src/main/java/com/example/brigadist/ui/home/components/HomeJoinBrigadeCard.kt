@@ -15,6 +15,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.ui.theme.DeepPurple
@@ -86,7 +88,10 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
                         containerColor = TurquoiseBlue,
                         contentColor = Color.White
                     ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                    modifier = Modifier.semantics { 
+                        contentDescription = "Learn More about joining the Brigade on Instagram"
+                    }
                 ) {
                     Text("Learn More", style = MaterialTheme.typography.labelLarge)
                 }

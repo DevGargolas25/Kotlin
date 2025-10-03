@@ -44,7 +44,7 @@ fun HomeScreen(
             color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 16.dp))
 
         Spacer(Modifier.height(16.dp))
-        HomeJoinBrigadeCard(onLearnMore)
+        HomeJoinBrigadeCard(onJoinClick = onLearnMore)
         Spacer(Modifier.height(16.dp))
         HomeLearnOnYourOwnSection(
             videos = state.videos,
