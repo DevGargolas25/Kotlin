@@ -14,8 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.LightAqua
 
 @Composable
 fun CategoryChip(
@@ -27,20 +25,20 @@ fun CategoryChip(
     val isAll = text.equals("All", ignoreCase = true)
 
     if (isAll) {
-        // Circular "All" chip (filled aqua with white text)
+        // Circular "All" chip (filled primary with onPrimary text)
         Box(
             modifier = modifier
                 .size(40.dp)
-                .background(LightAqua, CircleShape)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "All", color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Text(text = "All", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelLarge)
         }
     } else {
         // Rounded pill for the rest
-        val bg = if (selected) LightAqua.copy(alpha = 0.35f) else Color(0xFFEFF4F4)
-        val fg = DeepPurple
+        val bg = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+        val fg = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
 
         Box(
             modifier = modifier

@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -13,8 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.theme.SoftWhite
-import com.example.brigadist.ui.theme.DeepPurple
 
 @Composable
 fun VideoSearchBar(
@@ -31,24 +30,24 @@ fun VideoSearchBar(
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = null,
-                tint = DeepPurple.copy(alpha = 0.6f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         placeholder = {
             Text(
                 text = "Search videos…",
-                color = DeepPurple.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         },
         shape = RoundedCornerShape(24.dp),
         colors = TextFieldDefaults.colors(
-            unfocusedContainerColor = SoftWhite,
-            focusedContainerColor = SoftWhite,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
             unfocusedIndicatorColor = Color.Transparent,
             focusedIndicatorColor = Color.Transparent,
-            cursorColor = DeepPurple
+            cursorColor = MaterialTheme.colorScheme.primary
         ),
         modifier = modifier.fillMaxWidth()
     )

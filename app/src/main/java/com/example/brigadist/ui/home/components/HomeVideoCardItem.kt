@@ -21,8 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.LightAqua
 import com.example.brigadist.ui.videos.model.Video
 
 @Composable
@@ -35,7 +33,7 @@ fun HomeVideoCardItem(video: Video,
             .width(240.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        color = Color(0xFFF4EEF6),           // soft lilac
+        color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp,
         shadowElevation = 4.dp
     ) {
@@ -47,7 +45,7 @@ fun HomeVideoCardItem(video: Video,
                     .fillMaxWidth()
                     .height(120.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(LightAqua),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 // tiny play “triangle” look
@@ -55,7 +53,7 @@ fun HomeVideoCardItem(video: Video,
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color.White.copy(alpha = 0.7f))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
                 )
             }
 
@@ -63,7 +61,7 @@ fun HomeVideoCardItem(video: Video,
 
             Text(
                 text = video.title,
-                color = DeepPurple,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -72,7 +70,7 @@ fun HomeVideoCardItem(video: Video,
             Text(
                 text = video.duration,
                 style = MaterialTheme.typography.labelMedium,
-                color = DeepPurple.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

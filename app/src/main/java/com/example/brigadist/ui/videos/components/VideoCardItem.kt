@@ -13,8 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.LightAqua
 import com.example.brigadist.ui.videos.model.Video
 
 @Composable
@@ -27,7 +25,7 @@ fun VideoCardItem(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier.fillMaxWidth()
     ) {
         Column {
@@ -36,19 +34,19 @@ fun VideoCardItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .background(LightAqua.copy(alpha = 0.35f)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.PlayArrow,
                     contentDescription = null,
-                    tint = LightAqua,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(56.dp)
                 )
 
                 // duration pill (center-right on the thumbnail)
                 Surface(
-                    color = DeepPurple,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
@@ -56,7 +54,7 @@ fun VideoCardItem(
                 ) {
                     Text(
                         text = video.duration,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
@@ -69,7 +67,7 @@ fun VideoCardItem(
                 Text(
                     text = video.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = DeepPurple
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(Modifier.height(10.dp))
@@ -88,19 +86,19 @@ fun VideoCardItem(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = video.author,
-                        color = DeepPurple.copy(alpha = 0.9f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Text("  •  ", color = DeepPurple.copy(alpha = 0.5f))
+                    Text("  •  ", color = MaterialTheme.colorScheme.outline)
                     Text(
                         text = "${video.views} views",
-                        color = DeepPurple.copy(alpha = 0.9f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Text("  •  ", color = DeepPurple.copy(alpha = 0.5f))
+                    Text("  •  ", color = MaterialTheme.colorScheme.outline)
                     Text(
                         text = video.publishedAt,
-                        color = DeepPurple.copy(alpha = 0.9f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

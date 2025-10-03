@@ -10,16 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.theme.LightAqua
-import com.example.brigadist.ui.theme.DeepPurple
 
 @Composable
 fun VideoTagChip(text: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .background(LightAqua.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(16.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Text(text, color = DeepPurple, style = MaterialTheme.typography.labelMedium)
+        Text(text, color = MaterialTheme.colorScheme.onSecondaryContainer, style = MaterialTheme.typography.labelMedium)
     }
 }

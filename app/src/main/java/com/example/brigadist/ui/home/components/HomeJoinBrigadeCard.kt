@@ -19,8 +19,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.TurquoiseBlue
 import com.example.brigadist.R
 
 
@@ -32,7 +30,7 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Row(
@@ -58,26 +56,26 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(TurquoiseBlue.copy(alpha = 0.14f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Person,
                             contentDescription = null,
-                            tint = TurquoiseBlue
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
                         "Join the Brigade",
-                        color = DeepPurple,
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "Become part of the student safety team and help keep our campus secure.",
-                    color = DeepPurple.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(12.dp))
@@ -85,8 +83,8 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
                     onClick = onJoinClick,
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = TurquoiseBlue,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
                     modifier = Modifier.semantics { 
