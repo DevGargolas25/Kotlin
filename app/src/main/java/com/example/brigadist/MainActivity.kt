@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.auth0.android.Auth0
 import com.auth0.android.authentication.AuthenticationException
+import com.auth0.android.authentication.storage.CredentialsManager
+import com.auth0.android.authentication.storage.SharedPreferencesStorage
 import com.auth0.android.callback.Callback
 import com.auth0.android.provider.WebAuthProvider
 import com.auth0.android.result.Credentials
@@ -35,11 +37,14 @@ import com.example.brigadist.ui.videos.model.Video
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import com.auth0.android.authentication.AuthenticationAPIClient
+import com.auth0.android.authentication.storage.CredentialsManagerException
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var account: Auth0
     private var user by mutableStateOf<User?>(null)
+    private lateinit var credentialsManager: CredentialsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +56,17 @@ class MainActivity : ComponentActivity() {
             getString(R.string.auth0_client_id),
             getString(R.string.auth0_domain)
         )
+        credentialsManager = CredentialsManager(AuthenticationAPIClient(account), SharedPreferencesStorage(this))
+
+        credentialsManager.getCredentials(object : Callback<Credentials, CredentialsManagerException> {
+            override fun onSuccess(result: Credentials) {
+                user = credentialsToUser(result)
+            }
+
+            override fun onFailure(error: CredentialsManagerException) {
+                // No credentials stored
+            }
+        })
 
         setContent {
             if (user == null) {
@@ -64,13 +80,14 @@ class MainActivity : ComponentActivity() {
     private fun login() {
         WebAuthProvider.login(account)
             .withScheme("com.example.brigadist")
-            .withScope("openid profile email")
+            .withScope("openid profile email offline_access")
             .start(this, object : Callback<Credentials, AuthenticationException> {
                 override fun onFailure(error: AuthenticationException) {
                     // Handle error
                 }
 
                 override fun onSuccess(result: Credentials) {
+                    credentialsManager.saveCredentials(result)
                     user = credentialsToUser(result)
                 }
             })
@@ -85,6 +102,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 override fun onSuccess(result: Void?) {
+                    credentialsManager.clearCredentials()
                     user = null
                 }
             })
@@ -95,7 +113,7 @@ class MainActivity : ComponentActivity() {
 fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
     // Collect theme state from Orchestrator's ThemeController
     val themeState by orquestador.themeController.themeState.collectAsState()
-    
+
     // Lifecycle management for theme controller
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -106,14 +124,14 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                 else -> { /* No action needed */ }
             }
         }
-        
+
         lifecycleOwner.lifecycle.addObserver(observer)
-        
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    
+
     BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<Video?>(null) }
