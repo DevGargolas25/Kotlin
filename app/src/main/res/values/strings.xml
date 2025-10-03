@@ -12,4 +12,12 @@
     <string name="chat_empty_state">Start chatting to get help</string>
     <string name="chat_typing_indicator">Assistant is typing…</string>
     <string name="chat_message_content_description">Message from %1$s</string>
+    
+    <!-- Instagram URL -->
+    <string name="instagram_url">https://www.instagram.com/beuniandes/?hl=en</string>
+    
+    <!-- Contact Brigade tabs -->
+    <string name="contact_brigade_tab_location">Location</string>
+    <string name="contact_brigade_tab_assistant">Assistant</string>
+    <string name="contact_brigade_tab_medical">Medical</string>
 </resources>
