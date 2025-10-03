@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    // Necesario para que Firebase use google-services.json
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -17,6 +20,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Google Maps API Key placeholder
         // Maps Placeholders
         manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
 
@@ -55,7 +59,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -76,9 +79,18 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:4.3.0")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
-    
+
     // Permission handling
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // Firebase BOM centraliza versiones
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+
+    // Firebase Realtime Database
+    implementation("com.google.firebase:firebase-database-ktx")
+
+    // Firebase Analytics (opcional pero recomendado)
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Auth0 dependency
     implementation(libs.auth0)
