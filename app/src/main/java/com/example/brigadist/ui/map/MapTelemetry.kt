@@ -25,4 +25,17 @@ object MapTelemetry {
         // TODO: Replace with actual analytics implementation
         // Example: analytics.track("map_type_changed", mapOf("mapType" to mapType.name.lowercase()))
     }
+    
+    fun trackEvacuationNearestComputed(name: String, distanceBucket: String) {
+        // TODO: Replace with actual analytics implementation
+        // Example: analytics.track("evac_nearest_computed", mapOf(
+        //     "name" to name,
+        //     "distance_bucket" to distanceBucket
+        // ))
+    }
+    
+    fun trackEvacuationNavigateClicked(name: String) {
+        // TODO: Replace with actual analytics implementation
+        // Example: analytics.track("evac_navigate_clicked", mapOf("name" to name))
+    }
 }

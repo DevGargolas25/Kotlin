@@ -1,5 +1,8 @@
 package com.example.brigadist.ui.map
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -7,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -15,16 +19,19 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.example.brigadist.Orquestador
+import com.example.brigadist.data.MapLocation
 import com.example.brigadist.ui.map.components.RecenterButton
 import com.example.brigadist.ui.map.components.MapTypeSelector
+import com.example.brigadist.ui.map.components.EvacuationPointBanner
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(orquestador: Orquestador) {
     val context = LocalContext.current
+    val viewModel: MapViewModel = viewModel()
+    
     var cameraPosition by remember { mutableStateOf(orquestador.getDefaultCameraPosition()) }
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
-    var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var hasLocationPermission by remember { mutableStateOf(false) }
 
     val locationPermissionsState = rememberMultiplePermissionsState(
@@ -34,28 +41,37 @@ fun MapScreen(orquestador: Orquestador) {
         )
     )
 
-    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
-        hasLocationPermission = locationPermissionsState.allPermissionsGranted
+    // Initialize ViewModel with context
+    LaunchedEffect(Unit) {
+        viewModel.initializeLocationClient(context)
     }
 
+    // Update permission state
+    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
+        hasLocationPermission = locationPermissionsState.allPermissionsGranted
+        viewModel.setLocationPermission(hasLocationPermission)
+    }
+
+    // Track map opened event
     LaunchedEffect(Unit) {
         MapTelemetry.trackMapOpened(hasLocationPermission, mapType)
     }
 
+    // Request location updates when permission is granted
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
-            try {
-                val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                    location?.let {
-                        userLocation = LatLng(it.latitude, it.longitude)
-                    }
-                }
-            } catch (e: SecurityException) {
-                hasLocationPermission = false
-            }
+            viewModel.requestLocationUpdate()
         }
     }
+
+    // Collect ViewModel state
+    val userLocation by viewModel.userLocation.collectAsState()
+    val nearestLocation by viewModel.nearestLocation.collectAsState()
+    val distanceMeters by viewModel.distanceMeters.collectAsState()
+    val etaMinutes by viewModel.etaMinutes.collectAsState()
+
+    // Get all evacuation points for markers
+    val evacuationPoints = remember { viewModel.getAllEvacuationPoints() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
@@ -67,7 +83,17 @@ fun MapScreen(orquestador: Orquestador) {
                 mapType = mapType,
                 isMyLocationEnabled = hasLocationPermission
             )
-        )
+        ) {
+            // Add markers for all evacuation points
+            evacuationPoints.forEach { point ->
+                Marker(
+                    state = MarkerState(position = point.latLng),
+                    title = point.name,
+                    snippet = point.description,
+                    contentDescription = "Evacuation point: ${point.name}"
+                )
+            }
+        }
 
         MapTypeSelector(
             selectedMapType = mapType,
@@ -95,6 +121,34 @@ fun MapScreen(orquestador: Orquestador) {
                 .padding(16.dp)
         )
 
+        // Show nearest evacuation point banner when available
+        nearestLocation?.let { location ->
+            distanceMeters?.let { distance ->
+                etaMinutes?.let { eta ->
+                    EvacuationPointBanner(
+                        nearestLocation = location,
+                        distanceMeters = distance,
+                        etaMinutes = eta,
+                        onNavigateClick = {
+                            openWalkingDirections(context, location)
+                            MapTelemetry.trackEvacuationNavigateClicked(location.name)
+                        },
+                        onViewOnMapClick = {
+                            // Animate camera to nearest location
+                            cameraPosition = CameraPosition.builder()
+                                .target(location.latLng)
+                                .zoom(16f)
+                                .build()
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                    )
+                }
+            }
+        }
+
+        // Show permission rationale card when needed
         if (!hasLocationPermission && locationPermissionsState.shouldShowRationale) {
             Card(
                 modifier = Modifier
@@ -110,13 +164,13 @@ fun MapScreen(orquestador: Orquestador) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Location Permission",
+                        text = "Location permission needed",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Allow location access to show your position on the map and enable recenter functionality.",
+                        text = "Allow location to show the nearest evacuation point.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -127,16 +181,31 @@ fun MapScreen(orquestador: Orquestador) {
                         TextButton(
                             onClick = { locationPermissionsState.launchMultiplePermissionRequest() }
                         ) {
-                            Text("Grant Permission")
+                            Text("Allow")
                         }
                         TextButton(
                             onClick = { /* Dismiss rationale */ }
                         ) {
-                            Text("Not Now")
+                            Text("Not now")
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun openWalkingDirections(context: Context, location: MapLocation) {
+    val uri = Uri.parse("google.navigation:q=${location.latitude},${location.longitude}&mode=w")
+    val intent = Intent(Intent.ACTION_VIEW, uri)
+    intent.setPackage("com.google.android.apps.maps")
+    
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        // Fallback to web browser if Google Maps app is not available
+        val webUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}&travelmode=walking")
+        val webIntent = Intent(Intent.ACTION_VIEW, webUri)
+        context.startActivity(webIntent)
     }
 }
