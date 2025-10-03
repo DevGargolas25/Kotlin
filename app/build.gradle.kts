@@ -23,6 +23,13 @@ android {
         // Auth0 Placeholders
         manifestPlaceholders["auth0Domain"] = "dev-qjv13guqjegxhr3l.us.auth0.com"
         manifestPlaceholders["auth0Scheme"] = "com.example.brigadist"
+        
+        // Groq API Key
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY",
+            "\"${project.findProperty("GROQ_API_KEY") ?: ""}\""
+        )
     }
 
     buildTypes {
@@ -43,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -75,5 +83,8 @@ dependencies {
     // Auth0 dependency
     implementation(libs.auth0)
     implementation(libs.java.jwt)
+    
+    // OkHttp for Groq API
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
 }
