@@ -1,15 +1,34 @@
 package com.example.brigadist.ui.map
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.MapType
+import com.example.brigadist.data.MapLocation
+import com.example.brigadist.data.MapLocations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlin.math.*
+
+/**
+ * Status of location request operations
+ */
+sealed class LocationRequestStatus {
+    object Idle : LocationRequestStatus()
+    object Requesting : LocationRequestStatus()
+    object Success : LocationRequestStatus()
+    data class Error(val message: String) : LocationRequestStatus()
+}
 
 class MapViewModel : ViewModel() {
     
@@ -37,6 +56,36 @@ class MapViewModel : ViewModel() {
     private val _hasLocationPermission = MutableStateFlow(false)
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
     
+    // Nearest evacuation point state
+    private val _nearestLocation = MutableStateFlow<MapLocation?>(null)
+    val nearestLocation: StateFlow<MapLocation?> = _nearestLocation.asStateFlow()
+    
+    private val _distanceMeters = MutableStateFlow<Double?>(null)
+    val distanceMeters: StateFlow<Double?> = _distanceMeters.asStateFlow()
+    
+    private val _etaMinutes = MutableStateFlow<Int?>(null)
+    val etaMinutes: StateFlow<Int?> = _etaMinutes.asStateFlow()
+    
+    // Location request status for user feedback
+    private val _locationRequestStatus = MutableStateFlow<LocationRequestStatus>(LocationRequestStatus.Idle)
+    val locationRequestStatus: StateFlow<LocationRequestStatus> = _locationRequestStatus.asStateFlow()
+    
+    // Location update tracking
+    private var lastLocationUpdateTime = 0L
+    private var lastKnownLocation: LatLng? = null
+    private var locationProviderClient: FusedLocationProviderClient? = null
+    
+    // Constants for location updates
+    private companion object {
+        const val MIN_DISTANCE_CHANGE_METERS = 25.0
+        const val MIN_TIME_BETWEEN_UPDATES_MS = 30000L // 30 seconds
+        const val WALKING_SPEED_MPS = 1.4 // 5 km/h = 1.4 m/s
+    }
+    
+    fun initializeLocationClient(context: Context) {
+        locationProviderClient = LocationServices.getFusedLocationProviderClient(context)
+    }
+    
     fun updateCameraPosition(position: CameraPosition) {
         _cameraPosition.value = position
     }
@@ -47,6 +96,13 @@ class MapViewModel : ViewModel() {
     
     fun updateUserLocation(location: LatLng?) {
         _userLocation.value = location
+        
+        // Check if we should recompute nearest location
+        if (location != null && shouldUpdateNearestLocation(location)) {
+            computeNearestEvacuationPoint(location)
+            lastKnownLocation = location
+            lastLocationUpdateTime = System.currentTimeMillis()
+        }
     }
     
     fun setLocationPermission(granted: Boolean) {
@@ -66,6 +122,102 @@ class MapViewModel : ViewModel() {
         }
     }
     
+    /**
+     * Handles the "My Location" button click by attempting to get current location
+     * and centering the camera on it. Uses last known location immediately if available,
+     * then requests fresh location with fallback handling.
+     */
+    fun handleMyLocationButtonClick() {
+        viewModelScope.launch {
+            _locationRequestStatus.value = LocationRequestStatus.Requesting
+            
+            try {
+                if (!_hasLocationPermission.value) {
+                    _locationRequestStatus.value = LocationRequestStatus.Error("Location permission not granted")
+                    recenterOnDefault()
+                    return@launch
+                }
+                
+                // First try to use last known location immediately
+                locationProviderClient?.lastLocation?.addOnSuccessListener { location ->
+                    location?.let {
+                        val latLng = LatLng(it.latitude, it.longitude)
+                        _userLocation.value = latLng
+                        
+                        // Center camera on last known location
+                        val newPosition = CameraPosition.Builder()
+                            .target(latLng)
+                            .zoom(16f)
+                            .build()
+                        _cameraPosition.value = newPosition
+                        
+                        _locationRequestStatus.value = LocationRequestStatus.Success
+                    } ?: run {
+                        // No last known location, fall back to default
+                        _locationRequestStatus.value = LocationRequestStatus.Error("No location available")
+                        recenterOnDefault()
+                    }
+                }?.addOnFailureListener {
+                    // If last known location fails, fall back to default
+                    _locationRequestStatus.value = LocationRequestStatus.Error("Failed to get location")
+                    recenterOnDefault()
+                }
+                
+                // Also request a fresh location update for better accuracy
+                requestCurrentLocation()
+            } catch (e: SecurityException) {
+                // Permission not granted, center on default location
+                _locationRequestStatus.value = LocationRequestStatus.Error("Location permission denied")
+                recenterOnDefault()
+            }
+        }
+    }
+    
+    /**
+     * Requests a single current location update with timeout
+     */
+    private fun requestCurrentLocation() {
+        locationProviderClient?.let { client ->
+            viewModelScope.launch {
+                try {
+                    val locationRequest = LocationRequest.Builder(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        10000L // 10 seconds timeout
+                    ).apply {
+                        setMaxUpdateDelayMillis(10000L) // 10 seconds max delay
+                    }.build()
+                    
+                    client.requestLocationUpdates(
+                        locationRequest,
+                        { location ->
+                            val latLng = LatLng(location.latitude, location.longitude)
+                            _userLocation.value = latLng
+                            
+                            // Update camera to fresh location
+                            val newPosition = CameraPosition.Builder()
+                                .target(latLng)
+                                .zoom(16f)
+                                .build()
+                            _cameraPosition.value = newPosition
+                            
+                            _locationRequestStatus.value = LocationRequestStatus.Success
+                            
+                            // Stop updates after getting one location
+                            client.removeLocationUpdates { /* callback */ }
+                        },
+                        null
+                    )
+                    
+                    // Stop updates after 15 seconds regardless
+                    delay(15000L)
+                    client.removeLocationUpdates { /* callback */ }
+                } catch (e: SecurityException) {
+                    // Permission not granted, do nothing
+                }
+            }
+        }
+    }
+    
     fun recenterOnDefault() {
         viewModelScope.launch {
             val newPosition = CameraPosition.Builder()
@@ -73,6 +225,123 @@ class MapViewModel : ViewModel() {
                 .zoom(15f)
                 .build()
             _cameraPosition.value = newPosition
+        }
+    }
+    
+    fun requestLocationUpdate() {
+        locationProviderClient?.let { client ->
+            viewModelScope.launch {
+                try {
+                    // First try to get last known location
+                    client.lastLocation.addOnSuccessListener { location ->
+                        location?.let {
+                            val latLng = LatLng(it.latitude, it.longitude)
+                            updateUserLocation(latLng)
+                        }
+                    }
+                    
+                    // Then request fresh location updates
+                    val locationRequest = LocationRequest.Builder(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        10000L // 10 seconds
+                    ).apply {
+                        setMinUpdateIntervalMillis(5000L) // 5 seconds minimum
+                        setMaxUpdateDelayMillis(15000L) // 15 seconds maximum
+                    }.build()
+                    
+                    client.requestLocationUpdates(
+                        locationRequest,
+                        { location ->
+                            val latLng = LatLng(location.latitude, location.longitude)
+                            updateUserLocation(latLng)
+                        },
+                        null
+                    )
+                } catch (e: SecurityException) {
+                    // Permission not granted
+                }
+            }
+        }
+    }
+    
+    private fun shouldUpdateNearestLocation(newLocation: LatLng): Boolean {
+        val currentTime = System.currentTimeMillis()
+        
+        // Always update if this is the first location
+        if (lastKnownLocation == null) return true
+        
+        // Update if enough time has passed
+        if (currentTime - lastLocationUpdateTime >= MIN_TIME_BETWEEN_UPDATES_MS) return true
+        
+        // Update if moved enough distance
+        val distance = calculateDistance(lastKnownLocation!!, newLocation)
+        return distance >= MIN_DISTANCE_CHANGE_METERS
+    }
+    
+    private fun computeNearestEvacuationPoint(userLocation: LatLng) {
+        viewModelScope.launch {
+            val evacuationPoints = MapLocations.getAllEvacuationPoints()
+            var nearestPoint: MapLocation? = null
+            var minDistance = Double.MAX_VALUE
+            
+            evacuationPoints.forEach { point ->
+                val distance = calculateDistance(userLocation, point.latLng)
+                if (distance < minDistance) {
+                    minDistance = distance
+                    nearestPoint = point
+                }
+            }
+            
+            nearestPoint?.let { point ->
+                _nearestLocation.value = point
+                _distanceMeters.value = minDistance
+                _etaMinutes.value = calculateEtaMinutes(minDistance)
+                
+                // Track telemetry
+                val distanceBucket = when {
+                    minDistance < 100 -> "<100m"
+                    minDistance < 500 -> "100–500m"
+                    else -> ">500m"
+                }
+                MapTelemetry.trackEvacuationNearestComputed(point.name, distanceBucket)
+            }
+        }
+    }
+    
+    private fun calculateDistance(point1: LatLng, point2: LatLng): Double {
+        val earthRadius = 6371000.0 // Earth's radius in meters
+        
+        val lat1Rad = Math.toRadians(point1.latitude)
+        val lat2Rad = Math.toRadians(point2.latitude)
+        val deltaLatRad = Math.toRadians(point2.latitude - point1.latitude)
+        val deltaLngRad = Math.toRadians(point2.longitude - point1.longitude)
+        
+        val a = sin(deltaLatRad / 2).pow(2) +
+                cos(lat1Rad) * cos(lat2Rad) *
+                sin(deltaLngRad / 2).pow(2)
+        
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        
+        return earthRadius * c
+    }
+    
+    private fun calculateEtaMinutes(distanceMeters: Double): Int {
+        val etaSeconds = distanceMeters / WALKING_SPEED_MPS
+        val etaMinutes = (etaSeconds / 60).roundToInt()
+        return maxOf(1, etaMinutes) // Minimum 1 minute
+    }
+    
+    fun getAllEvacuationPoints(): List<MapLocation> {
+        return MapLocations.getAllEvacuationPoints()
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        // Stop location updates when ViewModel is cleared
+        try {
+            locationProviderClient?.removeLocationUpdates { /* callback */ }
+        } catch (e: Exception) {
+            // Ignore cleanup errors
         }
     }
 }

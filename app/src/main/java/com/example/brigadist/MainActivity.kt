@@ -26,6 +26,9 @@ import com.example.brigadist.ui.sos.SosSelectTypeModal
 import com.example.brigadist.ui.sos.SosConfirmationModal
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.theme.BrigadistTheme
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
@@ -53,7 +56,7 @@ class MainActivity : ComponentActivity() {
             if (user == null) {
                 LoginScreen(onLoginClick = { login() })
             } else {
-                BrigadistApp(Orquestador(user!!), onLogout = { logout() })
+                BrigadistApp(Orquestador(user!!, this@MainActivity), onLogout = { logout() })
             }
         }
     }
@@ -90,7 +93,28 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
-    BrigadistTheme {
+    // Collect theme state from Orchestrator's ThemeController
+    val themeState by orquestador.themeController.themeState.collectAsState()
+    
+    // Lifecycle management for theme controller
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> orquestador.themeController.onAppResumed()
+                Lifecycle.Event.ON_PAUSE -> orquestador.themeController.onAppPaused()
+                else -> { /* No action needed */ }
+            }
+        }
+        
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<Video?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
