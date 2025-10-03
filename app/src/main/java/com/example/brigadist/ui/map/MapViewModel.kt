@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -120,12 +122,31 @@ class MapViewModel : ViewModel() {
         locationProviderClient?.let { client ->
             viewModelScope.launch {
                 try {
+                    // First try to get last known location
                     client.lastLocation.addOnSuccessListener { location ->
                         location?.let {
                             val latLng = LatLng(it.latitude, it.longitude)
                             updateUserLocation(latLng)
                         }
                     }
+                    
+                    // Then request fresh location updates
+                    val locationRequest = LocationRequest.Builder(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        10000L // 10 seconds
+                    ).apply {
+                        setMinUpdateIntervalMillis(5000L) // 5 seconds minimum
+                        setMaxUpdateDelayMillis(15000L) // 15 seconds maximum
+                    }.build()
+                    
+                    client.requestLocationUpdates(
+                        locationRequest,
+                        { location ->
+                            val latLng = LatLng(location.latitude, location.longitude)
+                            updateUserLocation(latLng)
+                        },
+                        null
+                    )
                 } catch (e: SecurityException) {
                     // Permission not granted
                 }
@@ -202,5 +223,11 @@ class MapViewModel : ViewModel() {
     
     fun getAllEvacuationPoints(): List<MapLocation> {
         return MapLocations.getAllEvacuationPoints()
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        // Stop location updates when ViewModel is cleared
+        locationProviderClient?.removeLocationUpdates { /* callback */ }
     }
 }

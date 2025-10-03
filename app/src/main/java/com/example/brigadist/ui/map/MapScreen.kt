@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -86,11 +87,18 @@ fun MapScreen(orquestador: Orquestador) {
         ) {
             // Add markers for all evacuation points
             evacuationPoints.forEach { point ->
+                val isNearest = nearestLocation?.name == point.name
                 Marker(
                     state = MarkerState(position = point.latLng),
                     title = point.name,
                     snippet = point.description,
-                    contentDescription = "Evacuation point: ${point.name}"
+                    contentDescription = "Evacuation point: ${point.name}",
+                    icon = if (isNearest) {
+                        // Use a different icon for the nearest point
+                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+                    } else {
+                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)
+                    }
                 )
             }
         }
