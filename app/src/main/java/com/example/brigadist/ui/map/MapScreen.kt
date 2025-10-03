@@ -2,7 +2,12 @@ package com.example.brigadist.ui.map
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,22 +15,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.shouldShowRationale
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.MapLocation
 import com.example.brigadist.ui.map.components.RecenterButton
 import com.example.brigadist.ui.map.components.MapTypeSelector
 import com.example.brigadist.ui.map.components.EvacuationPointBanner
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(orquestador: Orquestador) {
     val context = LocalContext.current
@@ -42,23 +48,85 @@ fun MapScreen(orquestador: Orquestador) {
     }
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
     var hasLocationPermission by remember { mutableStateOf(false) }
+    var showPermissionRationale by remember { mutableStateOf(false) }
+    var showDeniedForeverMessage by remember { mutableStateOf(false) }
 
-    val locationPermissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+    // Define location permissions
+    val locationPermissions = arrayOf(
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+        android.Manifest.permission.ACCESS_COARSE_LOCATION
     )
+
+    // Permission launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseLocationGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val allGranted = fineLocationGranted || coarseLocationGranted
+        
+        hasLocationPermission = allGranted
+        viewModel.setLocationPermission(allGranted)
+        
+        if (allGranted) {
+            // Permission granted, request location and center camera
+            viewModel.handleMyLocationButtonClick()
+        } else {
+            // Check if user denied forever
+            val fineLocationDeniedForever = !fineLocationGranted && 
+                ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                !ActivityCompat.shouldShowRequestPermissionRationale(context as androidx.activity.ComponentActivity, android.Manifest.permission.ACCESS_FINE_LOCATION)
+            
+            val coarseLocationDeniedForever = !coarseLocationGranted && 
+                ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                !ActivityCompat.shouldShowRequestPermissionRationale(context as androidx.activity.ComponentActivity, android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            
+            if (fineLocationDeniedForever || coarseLocationDeniedForever) {
+                showDeniedForeverMessage = true
+            }
+        }
+    }
+
+    // Check initial permission state
+    LaunchedEffect(Unit) {
+        val fineLocationGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseLocationGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        hasLocationPermission = fineLocationGranted || coarseLocationGranted
+        viewModel.setLocationPermission(hasLocationPermission)
+    }
+
+    // Refresh permission state when returning from settings
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Check permission state when app resumes (e.g., returning from settings)
+                val fineLocationGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                val coarseLocationGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                val newPermissionState = fineLocationGranted || coarseLocationGranted
+                
+                if (newPermissionState != hasLocationPermission) {
+                    hasLocationPermission = newPermissionState
+                    viewModel.setLocationPermission(newPermissionState)
+                    
+                    // If permission was just granted, request location
+                    if (newPermissionState) {
+                        viewModel.handleMyLocationButtonClick()
+                    }
+                }
+            }
+        }
+        
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Initialize ViewModel with context
     LaunchedEffect(Unit) {
         viewModel.initializeLocationClient(context)
-    }
-
-    // Update permission state
-    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
-        hasLocationPermission = locationPermissionsState.allPermissionsGranted
-        viewModel.setLocationPermission(hasLocationPermission)
     }
 
     // Track map opened event
@@ -152,8 +220,32 @@ fun MapScreen(orquestador: Orquestador) {
 
         RecenterButton(
             onClick = {
-                viewModel.handleMyLocationButtonClick()
-                MapTelemetry.trackRecenterTapped(hasLocationPermission)
+                when {
+                    hasLocationPermission -> {
+                        // Permission already granted, get location and center
+                        viewModel.handleMyLocationButtonClick()
+                        MapTelemetry.trackRecenterTapped(true)
+                    }
+                    showDeniedForeverMessage -> {
+                        // Show "denied forever" message
+                        showDeniedForeverMessage = true
+                        MapTelemetry.trackRecenterTapped(false)
+                    }
+                    else -> {
+                        // Check if we should show rationale
+                        val shouldShowRationale = locationPermissions.any { permission ->
+                            ActivityCompat.shouldShowRequestPermissionRationale(context as ComponentActivity, permission)
+                        }
+                        
+                        if (shouldShowRationale) {
+                            showPermissionRationale = true
+                        } else {
+                            // Request permission directly
+                            permissionLauncher.launch(locationPermissions)
+                        }
+                        MapTelemetry.trackRecenterTapped(false)
+                    }
+                }
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -187,49 +279,79 @@ fun MapScreen(orquestador: Orquestador) {
             }
         }
 
-        // Show permission rationale card when needed
-        if (!hasLocationPermission && locationPermissionsState.shouldShowRationale) {
-            Card(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+        // Permission rationale dialog
+        if (showPermissionRationale) {
+            AlertDialog(
+                onDismissRequest = { showPermissionRationale = false },
+                title = {
                     Text(
-                        text = "Location permission needed",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = "Location Permission Needed",
+                        style = MaterialTheme.typography.headlineSmall
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                },
+                text = {
                     Text(
-                        text = "Allow location to show the nearest evacuation point.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = "This app needs location access to show your current position on the map and find the nearest evacuation point.",
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showPermissionRationale = false
+                            permissionLauncher.launch(locationPermissions)
+                        }
                     ) {
-                        TextButton(
-                            onClick = { locationPermissionsState.launchMultiplePermissionRequest() }
-                        ) {
-                            Text("Allow")
-                        }
-                        TextButton(
-                            onClick = { /* Dismiss rationale */ }
-                        ) {
-                            Text("Not now")
-                        }
+                        Text("Allow")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showPermissionRationale = false }
+                    ) {
+                        Text("Not now")
                     }
                 }
-            }
+            )
+        }
+
+        // Denied forever dialog
+        if (showDeniedForeverMessage) {
+            AlertDialog(
+                onDismissRequest = { showDeniedForeverMessage = false },
+                title = {
+                    Text(
+                        text = "Location Permission Denied",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Location permission has been permanently denied. You can enable it in the app settings.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeniedForeverMessage = false
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Text("Open Settings")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDeniedForeverMessage = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
         }
     }
