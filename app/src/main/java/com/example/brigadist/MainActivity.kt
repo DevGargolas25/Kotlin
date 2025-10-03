@@ -14,7 +14,6 @@ import com.auth0.android.provider.WebAuthProvider
 import com.auth0.android.result.Credentials
 import com.example.brigadist.auth.User
 import com.example.brigadist.auth.credentialsToUser
-import com.example.brigadist.screens.DetailChat
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
@@ -37,8 +36,8 @@ import androidx.compose.material3.*
 class MainActivity : ComponentActivity() {
 
     private lateinit var account: Auth0
-    private lateinit var orchestrator: AppOrchestrator
-    
+    private var user by mutableStateOf<User?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -49,30 +48,16 @@ class MainActivity : ComponentActivity() {
             getString(R.string.auth0_client_id),
             getString(R.string.auth0_domain)
         )
-        
-        orchestrator = AppOrchestrator(this)
-        
+
         setContent {
-            val appState by orchestrator.appState.collectAsState()
-            
-            if (!appState.isReady) {
+            if (user == null) {
                 LoginScreen(onLoginClick = { login() })
             } else {
-                BrigadistApp()
+                BrigadistApp(Orquestador(user!!), onLogout = { logout() })
             }
         }
     }
-    
-    override fun onResume() {
-        super.onResume()
-        orchestrator.onAppResumed()
-    }
-    
-    override fun onPause() {
-        super.onPause()
-        orchestrator.onAppPaused()
-    }
-    
+
     private fun login() {
         WebAuthProvider.login(account)
             .withScheme("com.example.brigadist")
@@ -83,7 +68,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 override fun onSuccess(result: Credentials) {
-                    orchestrator.setUser(credentialsToUser(result))
+                    user = credentialsToUser(result)
                 }
             })
     }
@@ -97,14 +82,14 @@ class MainActivity : ComponentActivity() {
                 }
 
                 override fun onSuccess(result: Void?) {
-                    orchestrator.setUser(null)
+                    user = null
                 }
             })
     }
 }
 
 @Composable
-fun BrigadistApp() {
+fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
     BrigadistTheme {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<VideoUi?>(null) }
@@ -142,27 +127,17 @@ fun BrigadistApp() {
                                 onNavigateToVideos = { selected = Destination.Videos }
                             )
                         } else {
-                            ProfileScreen()
+                            ProfileScreen(orquestador = orquestador, onLogout = onLogout)
                         }
                     }
 
-                    Destination.Chat -> {
-                        if (!showChatDetail) {
-                            ChatScreen(
-                                onOpenConversation = { showChatDetail = true }
-                            )
-                        } else {
-                            DetailChat(
-                                onBack = { showChatDetail = false }
-                            )
-                        }
-                    }
+                    Destination.Chat -> ChatScreen()
 
-                    Destination.Map -> MapScreen()
+                    Destination.Map -> MapScreen(orquestador)
 
                     Destination.Videos -> {
                         if (selectedVideo == null) {
-                            VideosRoute(onVideoClick = { video -> selectedVideo = video })
+                            VideosRoute(orquestador = orquestador, onVideoClick = { video -> selectedVideo = video })
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
