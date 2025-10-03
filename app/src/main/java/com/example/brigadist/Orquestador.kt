@@ -1,5 +1,6 @@
 package com.example.brigadist
 
+import android.content.Context
 import com.example.brigadist.auth.User
 import com.example.brigadist.ui.chat.model.ConversationUi
 import com.example.brigadist.ui.profile.model.Allergies
@@ -7,12 +8,19 @@ import com.example.brigadist.ui.profile.model.EmergencyContact
 import com.example.brigadist.ui.profile.model.MedicalInfo
 import com.example.brigadist.ui.profile.model.Medications
 import com.example.brigadist.ui.profile.model.UserProfile
+import com.example.brigadist.ui.theme.ThemeController
 import com.example.brigadist.ui.videos.model.VideoUi
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 
-class Orquestador(private val user: User) {
+class Orquestador(
+    private val user: User,
+    private val context: Context
+) {
     private val defaultLocation = LatLng(4.6018, -74.0661)
+    
+    // Theme controller - single owner of auto-theme pipeline
+    val themeController = ThemeController(context)
 
     fun getConversations(): List<ConversationUi> {
         return listOf(

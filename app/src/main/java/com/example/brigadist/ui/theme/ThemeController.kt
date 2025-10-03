@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.example.brigadist.core.sensors.AmbientLightMonitor
 import com.example.brigadist.data.prefs.ThemePreferences
+import com.example.brigadist.ui.theme.ThemeTelemetry
 
 enum class ThemeMode {
     AUTO, LIGHT, DARK

@@ -30,7 +30,8 @@ fun NavShell(
     orchestrator: AppOrchestrator,
     onLogout: () -> Unit
 ) {
-    val orquestador = Orquestador(user)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val orquestador = Orquestador(user, context)
     val themeState by orchestrator.themeState.collectAsState()
 
     BrigadistTheme(darkTheme = themeState.isDark) {
