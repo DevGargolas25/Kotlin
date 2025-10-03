@@ -20,6 +20,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlin.math.*
 
+/**
+ * Status of location request operations
+ */
+sealed class LocationRequestStatus {
+    object Idle : LocationRequestStatus()
+    object Requesting : LocationRequestStatus()
+    object Success : LocationRequestStatus()
+    data class Error(val message: String) : LocationRequestStatus()
+}
+
 class MapViewModel : ViewModel() {
     
     // Default location: Universidad de los Andes, Bogotá
@@ -55,6 +65,10 @@ class MapViewModel : ViewModel() {
     
     private val _etaMinutes = MutableStateFlow<Int?>(null)
     val etaMinutes: StateFlow<Int?> = _etaMinutes.asStateFlow()
+    
+    // Location request status for user feedback
+    private val _locationRequestStatus = MutableStateFlow<LocationRequestStatus>(LocationRequestStatus.Idle)
+    val locationRequestStatus: StateFlow<LocationRequestStatus> = _locationRequestStatus.asStateFlow()
     
     // Location update tracking
     private var lastLocationUpdateTime = 0L
@@ -104,6 +118,102 @@ class MapViewModel : ViewModel() {
                     .zoom(16f)
                     .build()
                 _cameraPosition.value = newPosition
+            }
+        }
+    }
+    
+    /**
+     * Handles the "My Location" button click by attempting to get current location
+     * and centering the camera on it. Uses last known location immediately if available,
+     * then requests fresh location with fallback handling.
+     */
+    fun handleMyLocationButtonClick() {
+        viewModelScope.launch {
+            _locationRequestStatus.value = LocationRequestStatus.Requesting
+            
+            try {
+                if (!_hasLocationPermission.value) {
+                    _locationRequestStatus.value = LocationRequestStatus.Error("Location permission not granted")
+                    recenterOnDefault()
+                    return@launch
+                }
+                
+                // First try to use last known location immediately
+                locationProviderClient?.lastLocation?.addOnSuccessListener { location ->
+                    location?.let {
+                        val latLng = LatLng(it.latitude, it.longitude)
+                        _userLocation.value = latLng
+                        
+                        // Center camera on last known location
+                        val newPosition = CameraPosition.Builder()
+                            .target(latLng)
+                            .zoom(16f)
+                            .build()
+                        _cameraPosition.value = newPosition
+                        
+                        _locationRequestStatus.value = LocationRequestStatus.Success
+                    } ?: run {
+                        // No last known location, fall back to default
+                        _locationRequestStatus.value = LocationRequestStatus.Error("No location available")
+                        recenterOnDefault()
+                    }
+                }?.addOnFailureListener {
+                    // If last known location fails, fall back to default
+                    _locationRequestStatus.value = LocationRequestStatus.Error("Failed to get location")
+                    recenterOnDefault()
+                }
+                
+                // Also request a fresh location update for better accuracy
+                requestCurrentLocation()
+            } catch (e: SecurityException) {
+                // Permission not granted, center on default location
+                _locationRequestStatus.value = LocationRequestStatus.Error("Location permission denied")
+                recenterOnDefault()
+            }
+        }
+    }
+    
+    /**
+     * Requests a single current location update with timeout
+     */
+    private fun requestCurrentLocation() {
+        locationProviderClient?.let { client ->
+            viewModelScope.launch {
+                try {
+                    val locationRequest = LocationRequest.Builder(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        10000L // 10 seconds timeout
+                    ).apply {
+                        setMaxUpdateDelayMillis(10000L) // 10 seconds max delay
+                    }.build()
+                    
+                    client.requestLocationUpdates(
+                        locationRequest,
+                        { location ->
+                            val latLng = LatLng(location.latitude, location.longitude)
+                            _userLocation.value = latLng
+                            
+                            // Update camera to fresh location
+                            val newPosition = CameraPosition.Builder()
+                                .target(latLng)
+                                .zoom(16f)
+                                .build()
+                            _cameraPosition.value = newPosition
+                            
+                            _locationRequestStatus.value = LocationRequestStatus.Success
+                            
+                            // Stop updates after getting one location
+                            client.removeLocationUpdates { /* callback */ }
+                        },
+                        null
+                    )
+                    
+                    // Stop updates after 15 seconds regardless
+                    delay(15000L)
+                    client.removeLocationUpdates { /* callback */ }
+                } catch (e: SecurityException) {
+                    // Permission not granted, do nothing
+                }
             }
         }
     }
@@ -228,6 +338,10 @@ class MapViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         // Stop location updates when ViewModel is cleared
-        locationProviderClient?.removeLocationUpdates { /* callback */ }
+        try {
+            locationProviderClient?.removeLocationUpdates { /* callback */ }
+        } catch (e: Exception) {
+            // Ignore cleanup errors
+        }
     }
 }

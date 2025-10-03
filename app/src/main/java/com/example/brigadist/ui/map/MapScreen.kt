@@ -32,6 +32,14 @@ fun MapScreen(orquestador: Orquestador) {
     val viewModel: MapViewModel = viewModel()
     
     var cameraPosition by remember { mutableStateOf(orquestador.getDefaultCameraPosition()) }
+    
+    // Listen to ViewModel camera position changes
+    val viewModelCameraPosition by viewModel.cameraPosition.collectAsState()
+    
+    // Update local camera position when ViewModel changes it
+    LaunchedEffect(viewModelCameraPosition) {
+        cameraPosition = viewModelCameraPosition
+    }
     var mapType by remember { mutableStateOf(MapType.NORMAL) }
     var hasLocationPermission by remember { mutableStateOf(false) }
 
@@ -70,11 +78,39 @@ fun MapScreen(orquestador: Orquestador) {
     val nearestLocation by viewModel.nearestLocation.collectAsState()
     val distanceMeters by viewModel.distanceMeters.collectAsState()
     val etaMinutes by viewModel.etaMinutes.collectAsState()
+    val locationRequestStatus by viewModel.locationRequestStatus.collectAsState()
+    
+    // Snackbar state for location feedback
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Show snackbar based on location request status
+    LaunchedEffect(locationRequestStatus) {
+        val status = locationRequestStatus
+        when (status) {
+            is LocationRequestStatus.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = status.message,
+                    duration = SnackbarDuration.Short
+                )
+            }
+            is LocationRequestStatus.Success -> {
+                snackbarHostState.showSnackbar(
+                    message = "Location found",
+                    duration = SnackbarDuration.Short
+                )
+            }
+            else -> { /* No action for Idle/Requesting */ }
+        }
+    }
 
     // Get all evacuation points for markers
     val evacuationPoints = remember { viewModel.getAllEvacuationPoints() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        modifier = Modifier.fillMaxSize()
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = CameraPositionState(
@@ -116,13 +152,8 @@ fun MapScreen(orquestador: Orquestador) {
 
         RecenterButton(
             onClick = {
-                if (hasLocationPermission && userLocation != null) {
-                    cameraPosition = CameraPosition.builder().target(userLocation!!).zoom(16f).build()
-                    MapTelemetry.trackRecenterTapped(true)
-                } else {
-                    cameraPosition = orquestador.getDefaultCameraPosition()
-                    MapTelemetry.trackRecenterTapped(false)
-                }
+                viewModel.handleMyLocationButtonClick()
+                MapTelemetry.trackRecenterTapped(hasLocationPermission)
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -199,6 +230,7 @@ fun MapScreen(orquestador: Orquestador) {
                     }
                 }
             }
+        }
         }
     }
 }
