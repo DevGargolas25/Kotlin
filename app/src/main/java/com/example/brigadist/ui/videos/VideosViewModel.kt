@@ -1,11 +1,13 @@
 package com.example.brigadist.ui.videos
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.brigadist.data.FirebaseVideoAdapter
 import com.example.brigadist.ui.videos.model.Video
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class VideosViewModel : ViewModel() {
 
@@ -23,11 +25,13 @@ class VideosViewModel : ViewModel() {
     private val _selectedTags = MutableStateFlow<Set<String>>(emptySet())
     val selectedTags = _selectedTags.asStateFlow()
 
+
     init {
-        // Ahora usamos callback en lugar de Flow
-        firebaseVideoAdapter.getVideos { list ->
-            _videos.value = list
-            _filteredVideos.value = list
+        viewModelScope.launch {
+            firebaseVideoAdapter.getVideos().collect {
+                _videos.value = it
+                _filteredVideos.value = it
+            }
         }
     }
 

@@ -9,7 +9,7 @@ data class VideoUi(
     val viewsText: String,       // e.g. "2.3k views"
     val ageText: String,          // e.g. "2 weeks ago"
     val description: String
-    )
+)
 
 // mm:ss
 fun Int.formatAsDuration(): String {
