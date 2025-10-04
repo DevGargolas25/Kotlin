@@ -26,7 +26,7 @@ import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun NavShell(
-    user: User,
+    user: User, 
     orchestrator: AppOrchestrator,
     onLogout: () -> Unit
 ) {
@@ -42,13 +42,14 @@ fun NavShell(
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
         var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
         var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
-
         Scaffold(
             bottomBar = {
                 BrBottomBar(
                     selected = selected,
                     onSelect = { dest ->
                         selected = dest
+                        orchestrator.trackScreenView(dest.name)
+                        // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
                     },
                     onSosClick = { showSosModal = true }
@@ -65,26 +66,34 @@ fun NavShell(
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
-                                onOpenProfile = { showProfile = true },
+                                onOpenProfile = { 
+                                    showProfile = true 
+                                    orchestrator.trackScreenView("Profile")
+                                },    // <<< navigate to Profile
                                 onNavigateToVideos = { selected = Destination.Videos },
                                 onOpenVideo = { video -> selectedVideo = video }
                             )
                         } else {
-                            // ✅ Ajustado: ProfileScreen ya no recibe orquestador ni onLogout
-                            ProfileScreen()
+                            ProfileScreen(orquestador = orquestador, onLogout = onLogout)
                         }
                     }
-
                     Destination.Chat -> ChatScreen()
-                    Destination.Map -> MapScreen(orquestador = orquestador)
+
+                    Destination.Map    -> MapScreen(orquestador = orquestador)
+
+
 
                     Destination.Videos -> {
                         if (selectedVideo == null) {
-                            VideosRoute(onVideoClick = { video -> selectedVideo = video })
+                            VideosRoute(
+                                onVideoClick = { video -> selectedVideo = video }
+                            )
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
                     }
+
+
                 }
             }
         }
@@ -93,27 +102,34 @@ fun NavShell(
         if (showSosModal) {
             SosModal(
                 onDismiss = { showSosModal = false },
-                onSendEmergencyAlert = { showSosSelectTypeModal = true },
-                onContactBrigade = { selected = Destination.Chat }
+                onSendEmergencyAlert = {
+                    // Show Step 2: Select Emergency Type modal
+                    showSosSelectTypeModal = true
+                },
+                onContactBrigade = {
+                    // Navigate to brigade contact or placeholder
+                    selected = Destination.Chat
+                }
             )
         }
 
-        // SOS Select Type Modal
+        // SOS Select Type Modal (Step 2)
         if (showSosSelectTypeModal) {
             SosSelectTypeModal(
                 onDismiss = { showSosSelectTypeModal = false },
                 onTypeSelected = { emergencyType ->
+                    // Show Step 3: Confirmation modal
                     selectedEmergencyType = emergencyType
                     showSosConfirmationModal = true
                 }
             )
         }
 
-        // SOS Confirmation Modal
+        // SOS Confirmation Modal (Step 3)
         if (showSosConfirmationModal && selectedEmergencyType != null) {
             SosConfirmationModal(
                 emergencyType = selectedEmergencyType!!,
-                onDismiss = {
+                onDismiss = { 
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
