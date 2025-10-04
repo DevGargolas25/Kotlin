@@ -15,7 +15,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,124 +24,120 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.example.brigadist.Orquestador
+import com.example.brigadist.ui.profile.model.FirebaseUserProfile
 import com.example.brigadist.ui.profile.model.UserProfile
 
-/**
- * Profile screen displaying user information such as personal details, emergency contacts,
- * medical info, allergies and current medications. It closely follows the layout of
- * the provided images, using cards with rounded corners and subtle borders to group
- * related fields. A bottom navigation bar allows movement between the main app screens.
- */
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
     orquestador: Orquestador,
-    onLogout: () -> Unit,
-    onNavigateHome: () -> Unit = {},
-    onNavigateChat: () -> Unit = {},
-    onNavigateMap: () -> Unit = {},
-    onNavigateVideos: () -> Unit = {},
-    onSOS: () -> Unit = {},
-    onEditProfile: () -> Unit = {}
+    onLogout: () -> Unit
 ) {
-    val scrollState = rememberScrollState()
+    var isEditing by remember { mutableStateOf(false) }
+    val firebaseUserProfile = orquestador.firebaseUserProfile
     val userProfile = orquestador.getUserProfile()
-    val emergencyContact = orquestador.getEmergencyContact()
-    val medicalInfo = orquestador.getMedicalInfo()
-    val allergies = orquestador.getAllergies()
-    val medications = orquestador.getMedications()
 
-    Scaffold(
+    if (isEditing) {
+        val profileToEdit = firebaseUserProfile ?: FirebaseUserProfile(
+            fullName = userProfile.fullName,
+            email = userProfile.email
+        )
 
-        modifier = modifier
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            // Header: avatar, name, role and edit button
-            ProfileHeader(userProfile = userProfile, onEdit = onEditProfile)
-            Spacer(modifier = Modifier.height(16.dp))
+        EditProfileScreen(
+            profile = profileToEdit,
+            onSave = { updatedProfile ->
+                orquestador.updateUserProfile(updatedProfile)
+                isEditing = false
+            },
+            onCancel = { isEditing = false }
+        )
+    } else {
+        val scrollState = rememberScrollState()
+        val emergencyContact = orquestador.getEmergencyContact()
+        val medicalInfo = orquestador.getMedicalInfo()
+        val allergies = orquestador.getAllergies()
+        val medications = orquestador.getMedications()
 
-            // Personal Information Section
-            SectionCard(
-                icon = Icons.Default.Person,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Personal Information"
+        Scaffold(
+            modifier = modifier
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                FieldRow(label = "Full Name", value = userProfile.fullName)
-                FieldRow(label = "Student ID", value = userProfile.studentId)
-                FieldRow(label = "Email", value = userProfile.email)
-                FieldRow(label = "Phone", value = userProfile.phone)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+                ProfileHeader(userProfile = userProfile, onEdit = { isEditing = true })
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Emergency Contacts Section
-            SectionCard(
-                icon = Icons.Default.Phone,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                title = "Emergency Contacts"
-            ) {
-                FieldRow(label = "Primary Contact", value = emergencyContact.primaryContactName)
-                FieldRow(label = "Primary Phone", value = emergencyContact.primaryContactPhone)
-                FieldRow(label = "Secondary Contact", value = emergencyContact.secondaryContactName)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+                SectionCard(
+                    icon = Icons.Default.Person,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    title = "Personal Information"
+                ) {
+                    FieldRow(label = "Full Name", value = userProfile.fullName)
+                    FieldRow(label = "Student ID", value = userProfile.studentId)
+                    FieldRow(label = "Email", value = userProfile.email)
+                    FieldRow(label = "Phone", value = userProfile.phone)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Medical Information Section
-            SectionCard(
-                icon = Icons.Default.FavoriteBorder,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Medical Information"
-            ) {
-                FieldRow(label = "Blood Type", value = medicalInfo.bloodType)
-                FieldRow(label = "Primary Physician", value = medicalInfo.primaryPhysician)
-                FieldRow(label = "Physician Phone", value = medicalInfo.physicianPhone)
-                FieldRow(label = "Insurance Provider", value = medicalInfo.insuranceProvider)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+                SectionCard(
+                    icon = Icons.Default.Phone,
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    title = "Emergency Contacts"
+                ) {
+                    FieldRow(label = "Primary Contact", value = emergencyContact.primaryContactName)
+                    FieldRow(label = "Primary Phone", value = emergencyContact.primaryContactPhone)
+                    FieldRow(label = "Secondary Contact", value = emergencyContact.secondaryContactName)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Allergies Section
-            SectionCard(
-                icon = Icons.Default.Info,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Allergies"
-            ) {
-                FieldRow(label = "Food Allergies", value = allergies.foodAllergies)
-                FieldRow(label = "Environmental Allergies", value = allergies.environmentalAllergies)
-                FieldRow(label = "Drug Allergies", value = allergies.drugAllergies)
-                FieldRow(label = "Severity Notes", value = allergies.severityNotes)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+                SectionCard(
+                    icon = Icons.Default.FavoriteBorder,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    title = "Medical Information"
+                ) {
+                    FieldRow(label = "Blood Type", value = medicalInfo.bloodType)
+                    FieldRow(label = "Primary Physician", value = medicalInfo.primaryPhysician)
+                    FieldRow(label = "Physician Phone", value = medicalInfo.physicianPhone)
+                    FieldRow(label = "Insurance Provider", value = medicalInfo.insuranceProvider)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Current Medications Section
-            SectionCard(
-                icon = Icons.Default.ShoppingCart,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                title = "Current Medications"
-            ) {
-                FieldRow(label = "Daily Medications", value = medications.dailyMedications)
-                FieldRow(label = "Emergency Medications", value = medications.emergencyMedications)
-                FieldRow(label = "Vitamins/Supplements", value = medications.vitaminsSupplements)
-                FieldRow(label = "Special Instructions", value = medications.specialInstructions)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+                SectionCard(
+                    icon = Icons.Default.Info,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    title = "Allergies"
+                ) {
+                    FieldRow(label = "Food Allergies", value = allergies.foodAllergies)
+                    FieldRow(label = "Environmental Allergies", value = allergies.environmentalAllergies)
+                    FieldRow(label = "Drug Allergies", value = allergies.drugAllergies)
+                    FieldRow(label = "Severity Notes", value = allergies.severityNotes)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = onLogout) {
-                Text("Log Out")
+                SectionCard(
+                    icon = Icons.Default.ShoppingCart,
+                    iconTint = MaterialTheme.colorScheme.secondary,
+                    title = "Current Medications"
+                ) {
+                    FieldRow(label = "Daily Medications", value = medications.dailyMedications)
+                    FieldRow(label = "Emergency Medications", value = medications.emergencyMedications)
+                    FieldRow(label = "Vitamins/Supplements", value = medications.vitaminsSupplements)
+                    FieldRow(label = "Special Instructions", value = medications.specialInstructions)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(onClick = onLogout) {
+                    Text("Log Out")
+                }
             }
         }
     }
 }
 
-/**
- * Header at the top of the profile screen containing an avatar placeholder, the user's
- * name and role, and an edit icon. Colours and typography mirror the provided
- * design.
- */
 @Composable
 fun ProfileHeader(userProfile: UserProfile, onEdit: () -> Unit = {}) {
     val avatarBackground = MaterialTheme.colorScheme.primaryContainer
@@ -192,11 +188,6 @@ fun ProfileHeader(userProfile: UserProfile, onEdit: () -> Unit = {}) {
     }
 }
 
-/**
- * A card component grouping related profile fields. Displays an icon and a title at the
- * top followed by arbitrary content. The card uses a white background, subtle border
- * and rounded corners similar to the design in the uploaded images.
- */
 @Composable
 fun SectionCard(
     icon: ImageVector,
@@ -233,11 +224,6 @@ fun SectionCard(
     }
 }
 
-/**
- * Displays a single labelled field within a profile section. The label appears above
- * a rounded surface containing the value. Empty values are represented by an
- * unobtrusive placeholder.
- */
 @Composable
 fun FieldRow(label: String, value: String) {
     val labelColour = MaterialTheme.colorScheme.onSurface
