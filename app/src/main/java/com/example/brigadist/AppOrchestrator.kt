@@ -19,25 +19,25 @@ data class AppState(
 class AppOrchestrator(
     private val context: Context
 ) : ViewModel() {
-    
+
     private val themeController = ThemeController(context)
-    
+
     private val _appState = MutableStateFlow(AppState())
     val appState: StateFlow<AppState> = _appState.asStateFlow()
-    
+
     val themeState = themeController.themeState
-    
+
     fun setUser(user: User?) {
         _appState.value = _appState.value.copy(
             user = user,
             isReady = true
         )
     }
-    
+
     fun onAppResumed() {
         themeController.onAppResumed()
     }
-    
+
     fun onAppPaused() {
         themeController.onAppPaused()
     }
@@ -45,7 +45,7 @@ class AppOrchestrator(
     fun trackScreenView(screenName: String) {
         AnalyticsHelper.trackScreenView(screenName)
     }
-    
+
     override fun onCleared() {
         super.onCleared()
         // ThemeController will handle its own cleanup

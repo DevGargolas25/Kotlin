@@ -37,9 +37,9 @@ fun EditProfileScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { 
+                    TextButton(onClick = {
                         AnalyticsHelper.trackProfileUpdate()
-                        onSave(editedProfile) 
+                        onSave(editedProfile)
                     }) {
                         Text("Save")
                     }

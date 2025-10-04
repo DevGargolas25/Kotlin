@@ -57,10 +57,7 @@ class MainActivity : ComponentActivity() {
             getString(R.string.auth0_client_id),
             getString(R.string.auth0_domain)
         )
-        credentialsManager = CredentialsManager(
-            AuthenticationAPIClient(account),
-            SharedPreferencesStorage(this)
-        )
+        credentialsManager = CredentialsManager(AuthenticationAPIClient(account), SharedPreferencesStorage(this))
 
         credentialsManager.getCredentials(object : Callback<Credentials, CredentialsManagerException> {
             override fun onSuccess(result: Credentials) {
@@ -115,7 +112,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
-    // Collect theme state from Orchestrator's ThemeController
+    // Collect theme state from Orchestrator's ThemeControlle
     val themeState by orquestador.themeController.themeState.collectAsState()
 
     // Lifecycle management for theme controller
@@ -179,12 +176,12 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                                 }
                             )
                         } else {
-                            // ✅ cambio aquí: ahora ProfileScreen() sin parámetros
-                            ProfileScreen()
+                            ProfileScreen(orquestador = orquestador, onLogout = onLogout)
                         }
                     }
 
                     Destination.Chat -> ChatScreen()
+
                     Destination.Map -> MapScreen(orquestador)
 
                     Destination.Videos -> {

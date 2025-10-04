@@ -26,7 +26,7 @@ import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun NavShell(
-    user: User, 
+    user: User,
     orchestrator: AppOrchestrator,
     onLogout: () -> Unit
 ) {
@@ -66,8 +66,8 @@ fun NavShell(
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
-                                onOpenProfile = { 
-                                    showProfile = true 
+                                onOpenProfile = {
+                                    showProfile = true
                                     orchestrator.trackScreenView("Profile")
                                 },    // <<< navigate to Profile
                                 onNavigateToVideos = { selected = Destination.Videos },
@@ -129,7 +129,7 @@ fun NavShell(
         if (showSosConfirmationModal && selectedEmergencyType != null) {
             SosConfirmationModal(
                 emergencyType = selectedEmergencyType!!,
-                onDismiss = { 
+                onDismiss = {
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
