@@ -3,6 +3,10 @@ package com.example.brigadist.ui.videos.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,7 +23,11 @@ import androidx.media3.ui.PlayerView
 import com.example.brigadist.ui.videos.model.Video
 
 @Composable
-fun DetailVideo(video: Video, modifier: Modifier = Modifier) {
+fun DetailVideo(
+    video: Video, 
+    modifier: Modifier = Modifier,
+    onLikeClicked: () -> Unit
+) {
     val context = LocalContext.current
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -68,7 +76,14 @@ fun DetailVideo(video: Video, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // You can add views, likes, etc. here if needed
+                Text(text = "${video.views} views")
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onLikeClicked) {
+                        Icon(Icons.Filled.ThumbUp, contentDescription = "Like")
+                    }
+                    Text(text = "${video.like}")
+                }
             }
 
             Spacer(Modifier.height(16.dp))
