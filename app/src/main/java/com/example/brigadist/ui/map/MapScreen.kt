@@ -27,6 +27,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.example.brigadist.Orquestador
+import com.example.brigadist.analytics.AnalyticsHelper
 import com.example.brigadist.data.MapLocation
 import com.example.brigadist.ui.map.components.RecenterButton
 import com.example.brigadist.ui.map.components.MapTypeSelector
@@ -67,6 +68,7 @@ fun MapScreen(orquestador: Orquestador) {
         
         hasLocationPermission = allGranted
         viewModel.setLocationPermission(allGranted)
+        AnalyticsHelper.trackPermissionStatus("location", allGranted)
         
         if (allGranted) {
             // Permission granted, request location and center camera
@@ -108,6 +110,7 @@ fun MapScreen(orquestador: Orquestador) {
                 if (newPermissionState != hasLocationPermission) {
                     hasLocationPermission = newPermissionState
                     viewModel.setLocationPermission(newPermissionState)
+                    AnalyticsHelper.trackPermissionStatus("location", newPermissionState)
                     
                     // If permission was just granted, request location
                     if (newPermissionState) {

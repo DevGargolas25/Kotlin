@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.brigadist.analytics.AnalyticsHelper
 import com.example.brigadist.ui.profile.model.FirebaseUserProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +37,10 @@ fun EditProfileScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { onSave(editedProfile) }) {
+                    TextButton(onClick = { 
+                        AnalyticsHelper.trackProfileUpdate()
+                        onSave(editedProfile) 
+                    }) {
                         Text("Save")
                     }
                 }

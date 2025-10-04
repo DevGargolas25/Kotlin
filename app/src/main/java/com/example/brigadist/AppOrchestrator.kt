@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.brigadist.analytics.AnalyticsHelper
 import com.example.brigadist.auth.User
 import com.example.brigadist.ui.theme.ThemeController
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,10 @@ class AppOrchestrator(
     
     fun onAppPaused() {
         themeController.onAppPaused()
+    }
+
+    fun trackScreenView(screenName: String) {
+        AnalyticsHelper.trackScreenView(screenName)
     }
     
     override fun onCleared() {
