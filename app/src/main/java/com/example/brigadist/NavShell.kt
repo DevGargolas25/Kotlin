@@ -26,7 +26,7 @@ import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun NavShell(
-    user: User, 
+    user: User,
     orchestrator: AppOrchestrator,
     onLogout: () -> Unit
 ) {
@@ -42,13 +42,13 @@ fun NavShell(
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
         var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
         var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
+
         Scaffold(
             bottomBar = {
                 BrBottomBar(
                     selected = selected,
                     onSelect = { dest ->
                         selected = dest
-                        // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
                     },
                     onSosClick = { showSosModal = true }
@@ -65,31 +65,26 @@ fun NavShell(
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
-                                onOpenProfile = { showProfile = true },    // <<< navigate to Profile
+                                onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos },
                                 onOpenVideo = { video -> selectedVideo = video }
                             )
                         } else {
-                            ProfileScreen(orquestador = orquestador, onLogout = onLogout)
+                            // ✅ Ajustado: ProfileScreen ya no recibe orquestador ni onLogout
+                            ProfileScreen()
                         }
                     }
+
                     Destination.Chat -> ChatScreen()
-
-                    Destination.Map    -> MapScreen(orquestador = orquestador)
-
-
+                    Destination.Map -> MapScreen(orquestador = orquestador)
 
                     Destination.Videos -> {
                         if (selectedVideo == null) {
-                            VideosRoute(
-                                onVideoClick = { video -> selectedVideo = video }
-                            )
+                            VideosRoute(onVideoClick = { video -> selectedVideo = video })
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
                     }
-
-
                 }
             }
         }
@@ -98,34 +93,27 @@ fun NavShell(
         if (showSosModal) {
             SosModal(
                 onDismiss = { showSosModal = false },
-                onSendEmergencyAlert = {
-                    // Show Step 2: Select Emergency Type modal
-                    showSosSelectTypeModal = true
-                },
-                onContactBrigade = {
-                    // Navigate to brigade contact or placeholder
-                    selected = Destination.Chat
-                }
+                onSendEmergencyAlert = { showSosSelectTypeModal = true },
+                onContactBrigade = { selected = Destination.Chat }
             )
         }
 
-        // SOS Select Type Modal (Step 2)
+        // SOS Select Type Modal
         if (showSosSelectTypeModal) {
             SosSelectTypeModal(
                 onDismiss = { showSosSelectTypeModal = false },
                 onTypeSelected = { emergencyType ->
-                    // Show Step 3: Confirmation modal
                     selectedEmergencyType = emergencyType
                     showSosConfirmationModal = true
                 }
             )
         }
 
-        // SOS Confirmation Modal (Step 3)
+        // SOS Confirmation Modal
         if (showSosConfirmationModal && selectedEmergencyType != null) {
             SosConfirmationModal(
                 emergencyType = selectedEmergencyType!!,
-                onDismiss = { 
+                onDismiss = {
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
                 }
