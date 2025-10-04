@@ -4,265 +4,153 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-import com.example.brigadist.Orquestador
-import com.example.brigadist.ui.profile.model.UserProfile
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.brigadist.ui.profile.model.*
 
-/**
- * Profile screen displaying user information such as personal details, emergency contacts,
- * medical info, allergies and current medications. It closely follows the layout of
- * the provided images, using cards with rounded corners and subtle borders to group
- * related fields. A bottom navigation bar allows movement between the main app screens.
- */
+// Import necesario para íconos
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    modifier: Modifier = Modifier,
-    orquestador: Orquestador,
-    onLogout: () -> Unit,
-    onNavigateHome: () -> Unit = {},
-    onNavigateChat: () -> Unit = {},
-    onNavigateMap: () -> Unit = {},
-    onNavigateVideos: () -> Unit = {},
-    onSOS: () -> Unit = {},
-    onEditProfile: () -> Unit = {}
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
-    val scrollState = rememberScrollState()
-    val userProfile = orquestador.getUserProfile()
-    val emergencyContact = orquestador.getEmergencyContact()
-    val medicalInfo = orquestador.getMedicalInfo()
-    val allergies = orquestador.getAllergies()
-    val medications = orquestador.getMedications()
+    // TODO: Reemplazar por el email real del usuario autenticado
+    val currentUserEmail = remember { mutableStateOf("juan.perez@uniandes.edu.co") }
 
-    Scaffold(
+    val loading by profileViewModel.loading
+    val error by profileViewModel.errorMessage
+    val userData by profileViewModel.userData
 
-        modifier = modifier
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            // Header: avatar, name, role and edit button
-            ProfileHeader(userProfile = userProfile, onEdit = onEditProfile)
-            Spacer(modifier = Modifier.height(16.dp))
+    var fullName by remember { mutableStateOf(userData["fullName"]?.toString() ?: "") }
+    var email by remember { mutableStateOf(userData["email"]?.toString() ?: "") }
+    var phone by remember { mutableStateOf(userData["phone"]?.toString() ?: "") }
+    var bloodType by remember { mutableStateOf(userData["bloodType"]?.toString() ?: "") }
+    var doctorName by remember { mutableStateOf(userData["doctorName"]?.toString() ?: "") }
 
-            // Personal Information Section
-            SectionCard(
-                icon = Icons.Default.Person,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Personal Information"
-            ) {
-                FieldRow(label = "Full Name", value = userProfile.fullName)
-                FieldRow(label = "Student ID", value = userProfile.studentId)
-                FieldRow(label = "Email", value = userProfile.email)
-                FieldRow(label = "Phone", value = userProfile.phone)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+    LaunchedEffect(userData) {
+        fullName = userData["fullName"]?.toString() ?: ""
+        email = userData["email"]?.toString() ?: ""
+        phone = userData["phone"]?.toString() ?: ""
+        bloodType = userData["bloodType"]?.toString() ?: ""
+        doctorName = userData["doctorName"]?.toString() ?: ""
+    }
 
-            // Emergency Contacts Section
-            SectionCard(
-                icon = Icons.Default.Phone,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                title = "Emergency Contacts"
-            ) {
-                FieldRow(label = "Primary Contact", value = emergencyContact.primaryContactName)
-                FieldRow(label = "Primary Phone", value = emergencyContact.primaryContactPhone)
-                FieldRow(label = "Secondary Contact", value = emergencyContact.secondaryContactName)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Medical Information Section
-            SectionCard(
-                icon = Icons.Default.FavoriteBorder,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Medical Information"
-            ) {
-                FieldRow(label = "Blood Type", value = medicalInfo.bloodType)
-                FieldRow(label = "Primary Physician", value = medicalInfo.primaryPhysician)
-                FieldRow(label = "Physician Phone", value = medicalInfo.physicianPhone)
-                FieldRow(label = "Insurance Provider", value = medicalInfo.insuranceProvider)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Allergies Section
-            SectionCard(
-                icon = Icons.Default.Info,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Allergies"
-            ) {
-                FieldRow(label = "Food Allergies", value = allergies.foodAllergies)
-                FieldRow(label = "Environmental Allergies", value = allergies.environmentalAllergies)
-                FieldRow(label = "Drug Allergies", value = allergies.drugAllergies)
-                FieldRow(label = "Severity Notes", value = allergies.severityNotes)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Current Medications Section
-            SectionCard(
-                icon = Icons.Default.ShoppingCart,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                title = "Current Medications"
-            ) {
-                FieldRow(label = "Daily Medications", value = medications.dailyMedications)
-                FieldRow(label = "Emergency Medications", value = medications.emergencyMedications)
-                FieldRow(label = "Vitamins/Supplements", value = medications.vitaminsSupplements)
-                FieldRow(label = "Special Instructions", value = medications.specialInstructions)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = onLogout) {
-                Text("Log Out")
-            }
+    LaunchedEffect(currentUserEmail.value) {
+        val e = currentUserEmail.value
+        if (e.isNotBlank()) {
+            profileViewModel.loadProfile(e)
         }
     }
-}
 
-/**
- * Header at the top of the profile screen containing an avatar placeholder, the user's
- * name and role, and an edit icon. Colours and typography mirror the provided
- * design.
- */
-@Composable
-fun ProfileHeader(userProfile: UserProfile, onEdit: () -> Unit = {}) {
-    val avatarBackground = MaterialTheme.colorScheme.primaryContainer
-    val avatarTint = MaterialTheme.colorScheme.primary
-    val nameColour = MaterialTheme.colorScheme.onSurface
-    val roleColour = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(avatarBackground, shape = CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = avatarTint,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = userProfile.fullName,
-                color = nameColour,
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Student Brigade Member",
-                color = roleColour,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        IconButton(onClick = onEdit) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit profile",
-                tint = Color(0xFFB4A4C0)
-            )
-        }
-    }
-}
-
-/**
- * A card component grouping related profile fields. Displays an icon and a title at the
- * top followed by arbitrary content. The card uses a white background, subtle border
- * and rounded corners similar to the design in the uploaded images.
- */
-@Composable
-fun SectionCard(
-    icon: ImageVector,
-    iconTint: Color,
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val borderColour = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, borderColour),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
                 Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+                    imageVector = Icons.Filled.Person,
+                    contentDescription = "avatar",
+                    modifier = Modifier.align(Alignment.Center),
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            content()
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = fullName.ifBlank { "Nombre no establecido" },
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = email.ifBlank { "Email no establecido" },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = fullName,
+            onValueChange = { fullName = it },
+            label = { Text("Nombre completo") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it },
+            label = { Text("Teléfono") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = bloodType,
+            onValueChange = { bloodType = it },
+            label = { Text("Tipo de sangre") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = doctorName,
+            onValueChange = { doctorName = it },
+            label = { Text("Médico") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = {
+                val updateMap = mapOf<String, Any?>(
+                    "fullName" to fullName,
+                    "email" to email,
+                    "phone" to phone,
+                    "bloodType" to bloodType,
+                    "doctorName" to doctorName
+                )
+                profileViewModel.updateProfileFields(updateMap) { _, _ -> }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Guardar cambios")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (loading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
+        error?.let { msg ->
+            Text(text = "Error: $msg", color = MaterialTheme.colorScheme.error)
         }
     }
-}
-
-/**
- * Displays a single labelled field within a profile section. The label appears above
- * a rounded surface containing the value. Empty values are represented by an
- * unobtrusive placeholder.
- */
-@Composable
-fun FieldRow(label: String, value: String) {
-    val labelColour = MaterialTheme.colorScheme.onSurface
-    val valueColour = MaterialTheme.colorScheme.onSurface
-    val fieldBackground = MaterialTheme.colorScheme.surfaceVariant
-    Text(
-        text = label,
-        color = labelColour,
-        style = MaterialTheme.typography.labelLarge
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = fieldBackground,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = if (value.isNotBlank()) value else " ",
-            color = valueColour,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 12.dp)
-        )
-    }
-    Spacer(modifier = Modifier.height(8.dp))
 }

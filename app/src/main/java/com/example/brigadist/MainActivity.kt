@@ -57,7 +57,10 @@ class MainActivity : ComponentActivity() {
             getString(R.string.auth0_client_id),
             getString(R.string.auth0_domain)
         )
-        credentialsManager = CredentialsManager(AuthenticationAPIClient(account), SharedPreferencesStorage(this))
+        credentialsManager = CredentialsManager(
+            AuthenticationAPIClient(account),
+            SharedPreferencesStorage(this)
+        )
 
         credentialsManager.getCredentials(object : Callback<Credentials, CredentialsManagerException> {
             override fun onSuccess(result: Credentials) {
@@ -170,18 +173,18 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                                 onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos },
                                 onOpenVideo = { video -> selectedVideo = video },
-                                onVideoClickFromCarousel = { video -> 
+                                onVideoClickFromCarousel = { video ->
                                     selectedVideo = video
                                     selected = Destination.Videos
                                 }
                             )
                         } else {
-                            ProfileScreen(orquestador = orquestador, onLogout = onLogout)
+                            // ✅ cambio aquí: ahora ProfileScreen() sin parámetros
+                            ProfileScreen()
                         }
                     }
 
                     Destination.Chat -> ChatScreen()
-
                     Destination.Map -> MapScreen(orquestador)
 
                     Destination.Videos -> {
@@ -225,7 +228,7 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                 }
             )
         }
-        
+
         // Contact Brigade Screen
         if (showContactBrigadeScreen) {
             SosContactBrigadeScreen(
