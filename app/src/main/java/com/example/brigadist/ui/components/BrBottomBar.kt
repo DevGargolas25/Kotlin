@@ -30,7 +30,7 @@ enum class Destination { Home, Chat, Map, Videos }
 fun BrBottomBar(
     selected: Destination,
     onSelect: (Destination) -> Unit,
-    onSosClick: () -> Unit,           // NEW
+    onSosClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
