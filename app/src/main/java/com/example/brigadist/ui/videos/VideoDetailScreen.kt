@@ -6,6 +6,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
@@ -20,6 +22,11 @@ fun VideoDetailScreen(
     onBack: () -> Unit,
     videosViewModel: VideosViewModel = viewModel()
 ) {
+    // Observe the list of videos from the view model
+    val videos by videosViewModel.videos.collectAsState()
+    // Find the most up-to-date version of the video, falling back to the initial one
+    val currentVideo = videos.find { it.id == video.id } ?: video
+
     LaunchedEffect(video.id) {
         videosViewModel.incrementViewCount(video.id)
     }
@@ -29,7 +36,7 @@ fun VideoDetailScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        video.title,
+                        currentVideo.title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onPrimary
@@ -49,9 +56,9 @@ fun VideoDetailScreen(
         }
     ) { innerPadding ->
         DetailVideo(
-            video = video,
+            video = currentVideo, // Pass the live video object to the detail view
             modifier = Modifier.padding(innerPadding),
-            onLikeClicked = { videosViewModel.toggleLike(video.id, "USER_ID_PLACEHOLDER") }
+            onLikeClicked = { videosViewModel.toggleLike(currentVideo.id, "USER_ID_PLACEHOLDER") }
         )
     }
 }

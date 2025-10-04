@@ -52,18 +52,35 @@ class FirebaseVideoAdapter {
     }
 
     fun toggleLike(videoId: String, userId: String) {
-        val likesRef = database.child(videoId).child("likes").child(userId)
-        likesRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
-                    likesRef.removeValue()
+        database.child(videoId).runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                val likeCountNode = currentData.child("like")
+                val userLikeNode = currentData.child("likes").child(userId)
+
+                var likeCount = likeCountNode.getValue(Int::class.java) ?: 0
+
+                if (userLikeNode.value == null) {
+                    // User hasn't liked it yet. Like it.
+                    likeCount++
+                    userLikeNode.value = true
                 } else {
-                    likesRef.setValue(true)
+                    // User has liked it. Unlike it.
+                    likeCount--
+                    userLikeNode.value = null // Remove the user's like
                 }
+
+                // Set the new like count
+                likeCountNode.value = likeCount
+
+                return Transaction.success(currentData)
             }
 
-            override fun onCancelled(error: DatabaseError) {
-                // Handle error
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                // Transaction completed. Can log errors here if needed.
             }
         })
     }
