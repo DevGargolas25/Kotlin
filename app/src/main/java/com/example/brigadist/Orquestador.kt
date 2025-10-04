@@ -1,10 +1,14 @@
 package com.example.brigadist
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.example.brigadist.auth.User
 import com.example.brigadist.ui.chat.model.ConversationUi
 import com.example.brigadist.ui.profile.model.Allergies
 import com.example.brigadist.ui.profile.model.EmergencyContact
+import com.example.brigadist.ui.profile.model.FirebaseUserProfile
 import com.example.brigadist.ui.profile.model.MedicalInfo
 import com.example.brigadist.ui.profile.model.Medications
 import com.example.brigadist.ui.profile.model.UserProfile
@@ -12,15 +16,45 @@ import com.example.brigadist.ui.theme.ThemeController
 import com.example.brigadist.ui.videos.model.VideoUi
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 
 class Orquestador(
     private val user: User,
     private val context: Context
 ) {
     private val defaultLocation = LatLng(4.6018, -74.0661)
-    
-    // Theme controller - single owner of auto-theme pipeline
+    private val database: FirebaseDatabase = Firebase.database
+    private val userRef = database.getReference("User").child(user.id.substringAfter("|"))
+
+    var firebaseUserProfile by mutableStateOf<FirebaseUserProfile?>(null)
+        private set
+
     val themeController = ThemeController(context)
+
+    init {
+        fetchUserProfile()
+    }
+
+    private fun fetchUserProfile() {
+        userRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                firebaseUserProfile = snapshot.getValue(FirebaseUserProfile::class.java)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error
+            }
+        })
+    }
+
+    fun updateUserProfile(profile: FirebaseUserProfile) {
+        userRef.setValue(profile)
+    }
 
     fun getConversations(): List<ConversationUi> {
         return listOf(
@@ -35,45 +69,45 @@ class Orquestador(
 
     fun getUserProfile(): UserProfile {
         return UserProfile(
-            fullName = user.name,
-            studentId = "SB2024001", // This should be fetched from your backend
-            email = user.email,
-            phone = "+1 (555) 123-4567" // This should be fetched from your backend
+            fullName = firebaseUserProfile?.fullName ?: user.name,
+            studentId = firebaseUserProfile?.studentId ?: "",
+            email = firebaseUserProfile?.email ?: user.email,
+            phone = firebaseUserProfile?.phone ?: ""
         )
     }
 
     fun getEmergencyContact(): EmergencyContact {
         return EmergencyContact(
-            primaryContactName = "Jane Smith (Mother)",
-            primaryContactPhone = "+1 (555) 987-6543",
-            secondaryContactName = ""
+            primaryContactName = firebaseUserProfile?.emergencyName1 ?: "",
+            primaryContactPhone = firebaseUserProfile?.emergencyPhone1 ?: "",
+            secondaryContactName = firebaseUserProfile?.emergencyName2 ?: ""
         )
     }
 
     fun getMedicalInfo(): MedicalInfo {
         return MedicalInfo(
-            bloodType = "O+",
-            primaryPhysician = "Dr. Sarah Johnson",
-            physicianPhone = "+1 (555) 234-5678",
-            insuranceProvider = "University Health Plan"
+            bloodType = firebaseUserProfile?.bloodType ?: "",
+            primaryPhysician = firebaseUserProfile?.doctorName ?: "",
+            physicianPhone = firebaseUserProfile?.doctorPhone ?: "",
+            insuranceProvider = firebaseUserProfile?.insuranceProvider ?: ""
         )
     }
 
     fun getAllergies(): Allergies {
         return Allergies(
-            foodAllergies = "Peanuts, Shellfish",
-            environmentalAllergies = "Pollen, Dust mites",
-            drugAllergies = "",
-            severityNotes = "Carry EpiPen for severe reactions"
+            foodAllergies = firebaseUserProfile?.foodAllergies ?: "",
+            environmentalAllergies = firebaseUserProfile?.environmentalAllergies ?: "",
+            drugAllergies = firebaseUserProfile?.drugAllergies ?: "",
+            severityNotes = firebaseUserProfile?.severityNotes ?: ""
         )
     }
 
     fun getMedications(): Medications {
         return Medications(
-            dailyMedications = "Inhaler (Albuterol) - As needed for asthma",
-            emergencyMedications = "EpiPen - For severe allergic reactions",
-            vitaminsSupplements = "Vitamin D3 - 1000 IU daily",
-            specialInstructions = "Keep inhaler and EpiPen accessible at all times"
+            dailyMedications = firebaseUserProfile?.dailyMedications ?: "",
+            emergencyMedications = firebaseUserProfile?.emergencyMedications ?: "",
+            vitaminsSupplements = firebaseUserProfile?.vitaminsSupplements ?: "",
+            specialInstructions = firebaseUserProfile?.specialInstructions ?: ""
         )
     }
 
