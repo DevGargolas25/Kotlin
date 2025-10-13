@@ -16,7 +16,7 @@ This module contains the Google Maps integration for the Brigadist app, replacin
 - **Location Services**: My Location layer when permission is granted
 - **Map Controls**: Recenter FAB and map type selector (Normal/Satellite/Terrain/Hybrid)
 - **Permission Handling**: Runtime location permission requests with user-friendly rationale
-- **Secure API Key**: API key stored in local.properties (not committed to version control)
+- **Secure API Key**: API key stored in gradle.properties (not committed to version control)
 - **Theme Integration**: Uses app's Material 3 theme tokens for consistent styling
 - **Telemetry**: Lightweight tracking of map interactions
 
@@ -24,9 +24,9 @@ This module contains the Google Maps integration for the Brigadist app, replacin
 
 The Google Maps API key is securely configured:
 
-- **API Key**: Stored in `local.properties` (gitignored)
+- **API Key**: Stored in `gradle.properties` (gitignored)
 - **Manifest**: Uses manifest placeholder `${MAPS_API_KEY}`
-- **Build**: Gradle reads key from local.properties and injects it
+- **Build**: Gradle reads key from gradle.properties and injects it
 - **No Hardcoding**: Key never appears in source code or committed files
 
 ## Permissions
