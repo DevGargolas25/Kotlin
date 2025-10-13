@@ -44,9 +44,6 @@ class MapViewModel : ViewModel() {
     )
     val cameraPosition: StateFlow<CameraPosition> = _cameraPosition.asStateFlow()
     
-    // Map type state
-    private val _mapType = MutableStateFlow(MapType.NORMAL)
-    val mapType: StateFlow<MapType> = _mapType.asStateFlow()
     
     // User location state
     private val _userLocation = MutableStateFlow<LatLng?>(null)
@@ -90,9 +87,6 @@ class MapViewModel : ViewModel() {
         _cameraPosition.value = position
     }
     
-    fun setMapType(mapType: MapType) {
-        _mapType.value = mapType
-    }
     
     fun updateUserLocation(location: LatLng?) {
         _userLocation.value = location
@@ -168,6 +162,10 @@ class MapViewModel : ViewModel() {
             } catch (e: SecurityException) {
                 // Permission not granted, center on default location
                 _locationRequestStatus.value = LocationRequestStatus.Error("Location permission denied")
+                recenterOnDefault()
+            } catch (e: Exception) {
+                // Handle any other exceptions
+                _locationRequestStatus.value = LocationRequestStatus.Error("Location request failed: ${e.message}")
                 recenterOnDefault()
             }
         }

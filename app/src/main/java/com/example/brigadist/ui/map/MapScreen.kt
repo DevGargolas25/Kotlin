@@ -22,6 +22,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -30,7 +31,6 @@ import com.example.brigadist.Orquestador
 import com.example.brigadist.analytics.AnalyticsHelper
 import com.example.brigadist.data.MapLocation
 import com.example.brigadist.ui.map.components.RecenterButton
-import com.example.brigadist.ui.map.components.MapTypeSelector
 import com.example.brigadist.ui.map.components.EvacuationPointBanner
 
 @Composable
@@ -38,16 +38,8 @@ fun MapScreen(orquestador: Orquestador) {
     val context = LocalContext.current
     val viewModel: MapViewModel = viewModel()
     
-    var cameraPosition by remember { mutableStateOf(orquestador.getDefaultCameraPosition()) }
-    
-    // Listen to ViewModel camera position changes
-    val viewModelCameraPosition by viewModel.cameraPosition.collectAsState()
-    
-    // Update local camera position when ViewModel changes it
-    LaunchedEffect(viewModelCameraPosition) {
-        cameraPosition = viewModelCameraPosition
-    }
-    var mapType by remember { mutableStateOf(MapType.NORMAL) }
+    // Use ViewModel state for camera position
+    val cameraPosition by viewModel.cameraPosition.collectAsState()
     var hasLocationPermission by remember { mutableStateOf(false) }
     var showPermissionRationale by remember { mutableStateOf(false) }
     var showDeniedForeverMessage by remember { mutableStateOf(false) }
@@ -134,7 +126,7 @@ fun MapScreen(orquestador: Orquestador) {
 
     // Track map opened event
     LaunchedEffect(Unit) {
-        MapTelemetry.trackMapOpened(hasLocationPermission, mapType)
+        MapTelemetry.trackMapOpened(hasLocationPermission, MapType.NORMAL)
     }
 
     // Request location updates when permission is granted
@@ -182,13 +174,22 @@ fun MapScreen(orquestador: Orquestador) {
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        val cameraPositionState = rememberCameraPositionState {
+            position = cameraPosition
+        }
+        
+        // Update camera position when ViewModel changes it
+        LaunchedEffect(cameraPosition) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newCameraPosition(cameraPosition)
+            )
+        }
+        
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = CameraPositionState(
-                position = cameraPosition
-            ),
+            cameraPositionState = cameraPositionState,
             properties = MapProperties(
-                mapType = mapType,
+                mapType = MapType.NORMAL,
                 isMyLocationEnabled = hasLocationPermission
             )
         ) {
@@ -210,16 +211,6 @@ fun MapScreen(orquestador: Orquestador) {
             }
         }
 
-        MapTypeSelector(
-            selectedMapType = mapType,
-            onMapTypeSelected = { newMapType ->
-                mapType = newMapType
-                MapTelemetry.trackMapTypeChanged(newMapType)
-            },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-        )
 
         RecenterButton(
             onClick = {
@@ -269,10 +260,11 @@ fun MapScreen(orquestador: Orquestador) {
                         },
                         onViewOnMapClick = {
                             // Animate camera to nearest location
-                            cameraPosition = CameraPosition.builder()
+                            val newPosition = CameraPosition.builder()
                                 .target(location.latLng)
                                 .zoom(16f)
                                 .build()
+                            viewModel.updateCameraPosition(newPosition)
                         },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
