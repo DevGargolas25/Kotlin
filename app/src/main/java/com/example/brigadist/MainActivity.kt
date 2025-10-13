@@ -35,6 +35,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
+import com.example.brigadist.ui.analytics.AnalyticsHomeScreen
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var account: Auth0
     private var user by mutableStateOf<User?>(null)
+    private var isAnalyticsUser by mutableStateOf(false)
     private lateinit var credentialsManager: CredentialsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +64,16 @@ class MainActivity : ComponentActivity() {
         credentialsManager.getCredentials(object : Callback<Credentials, CredentialsManagerException> {
             override fun onSuccess(result: Credentials) {
                 user = credentialsToUser(result)
+                
+                // Check userType for existing credentials
+                user?.let { currentUser ->
+                    val orquestador = Orquestador(currentUser, this@MainActivity)
+                    // Wait a moment for Firebase data to load, then check userType
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        val userType = orquestador.getUserType().lowercase()
+                        isAnalyticsUser = userType == "analytics" || userType == "analitics"
+                    }, 1000) // 1 second delay to allow Firebase to load
+                }
             }
 
             override fun onFailure(error: CredentialsManagerException) {
@@ -72,6 +84,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             if (user == null) {
                 LoginScreen(onLoginClick = { login() })
+            } else if (isAnalyticsUser) {
+                BrigadistTheme(darkTheme = false) {
+                    AnalyticsHomeScreen(onLogout = { logout() })
+                }
             } else {
                 BrigadistApp(Orquestador(user!!, this@MainActivity), onLogout = { logout() })
             }
@@ -90,6 +106,16 @@ class MainActivity : ComponentActivity() {
                 override fun onSuccess(result: Credentials) {
                     credentialsManager.saveCredentials(result)
                     user = credentialsToUser(result)
+                    
+                    // Check userType after successful login
+                    user?.let { currentUser ->
+                        val orquestador = Orquestador(currentUser, this@MainActivity)
+                        // Wait a moment for Firebase data to load, then check userType
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            val userType = orquestador.getUserType().lowercase()
+                            isAnalyticsUser = userType == "analytics" || userType == "analitics"
+                        }, 1000) // 1 second delay to allow Firebase to load
+                    }
                 }
             })
     }
@@ -105,6 +131,7 @@ class MainActivity : ComponentActivity() {
                 override fun onSuccess(result: Void?) {
                     credentialsManager.clearCredentials()
                     user = null
+                    isAnalyticsUser = false
                 }
             })
     }
