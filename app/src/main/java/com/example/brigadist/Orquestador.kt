@@ -111,6 +111,10 @@ class Orquestador(
         )
     }
 
+    fun getUserType(): String {
+        return firebaseUserProfile?.userType ?: ""
+    }
+
     fun getVideos(): List<VideoUi> {
         return listOf(
             VideoUi(id = "1", title = "Fire Safety Basics", durationSec = 755, tags = listOf("Fire Safety"), author = "Student Brigade", viewsText = "1.2k views", ageText = "1 week ago", description = "Basic fire safety measures and evacuation procedures."),
