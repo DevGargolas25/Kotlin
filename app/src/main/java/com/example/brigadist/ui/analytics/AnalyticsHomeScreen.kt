@@ -27,16 +27,20 @@ fun AnalyticsHomeScreen(
     var logoutError by remember { mutableStateOf<String?>(null) }
     val dashboardData by viewModel.dashboardData.collectAsState()
     
-    Column(
-        modifier = modifier.fillMaxSize()
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
         // Header
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(
@@ -47,7 +51,7 @@ fun AnalyticsHomeScreen(
                     imageVector = Icons.Default.Info,
                     contentDescription = stringResource(R.string.analytics_icon_content_description),
                     modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -55,14 +59,7 @@ fun AnalyticsHomeScreen(
                 Text(
                     text = stringResource(R.string.analytics_title),
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    textAlign = TextAlign.Center
-                )
-                
-                Text(
-                    text = stringResource(R.string.analytics_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
             }
@@ -129,50 +126,54 @@ fun AnalyticsHomeScreen(
                 .fillMaxWidth()
                 .padding(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
-            Button(
-                onClick = {
-                    isLoggingOut = true
-                    logoutError = null
-                    try {
-                        onLogout()
-                    } catch (e: Exception) {
-                        logoutError = "Logout failed. Please try again."
-                        isLoggingOut = false
-                    }
-                },
-                enabled = !isLoggingOut,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(16.dp)
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                if (isLoggingOut) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
+                OutlinedButton(
+                    onClick = {
+                        isLoggingOut = true
+                        logoutError = null
+                        try {
+                            onLogout()
+                        } catch (e: Exception) {
+                            logoutError = "Logout failed. Please try again."
+                            isLoggingOut = false
+                        }
+                    },
+                    enabled = !isLoggingOut,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    if (isLoggingOut) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = stringResource(R.string.logout_button),
+                        style = MaterialTheme.typography.labelLarge
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(
-                    text = stringResource(R.string.logout_button),
-                    style = MaterialTheme.typography.labelLarge
-                )
+                
+                // Error message
+                logoutError?.let { error ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
-            
-            // Error message
-            logoutError?.let { error ->
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+        }
         }
     }
 }
@@ -187,7 +188,7 @@ private fun AnalyticsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -203,7 +204,7 @@ private fun AnalyticsCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 if (state is AnalyticsUiState.Error) {
@@ -314,7 +315,7 @@ private fun PermissionChangesContent(summary: PermissionChangesSummary) {
                 Text(
                     text = date,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Location granted: ${data.location.granted}",
@@ -347,7 +348,7 @@ private fun PermissionStatusContent(summary: PermissionStatusSummary) {
                 Text(
                     text = date,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${data.granted} users",
@@ -381,7 +382,7 @@ private fun ProfileUpdatesContent(summary: ProfileUpdatesSummary) {
                     Text(
                         text = date,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "Total: ${data.total}",
@@ -428,7 +429,7 @@ private fun ScreenViewsContent(summary: ScreenViewsSummary) {
                     text = date,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 screenViews.forEach { screenView ->
