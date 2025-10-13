@@ -90,6 +90,9 @@ dependencies {
     // Firebase Realtime Database
     implementation("com.google.firebase:firebase-database-ktx")
 
+    // Firebase Firestore
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
     // Firebase Analytics (opcional pero recomendado)
     implementation("com.google.firebase:firebase-analytics-ktx")
 
