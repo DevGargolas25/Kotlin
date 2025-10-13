@@ -33,12 +33,6 @@ object MapLocations {
             latitude = 4.603966,
             longitude = -74.065778,
             description = "Meeting point"
-        ),
-        MapLocation(
-            name = "Mockup",
-            latitude = 4.795467,
-            longitude = -74.067037,
-            description = "Meeting point (test location)"
         )
     )
     
