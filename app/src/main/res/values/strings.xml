@@ -25,4 +25,7 @@
     <string name="analytics_title">Analytics Dashboard</string>
     <string name="analytics_subtitle">Welcome to the analytics view. This is a placeholder for future analytics features.</string>
     <string name="analytics_icon_content_description">Analytics dashboard icon</string>
+    
+    <!-- Logout strings -->
+    <string name="logout_button">Log out</string>
 </resources>

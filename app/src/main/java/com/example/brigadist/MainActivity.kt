@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
                 LoginScreen(onLoginClick = { login() })
             } else if (isAnalyticsUser) {
                 BrigadistTheme(darkTheme = false) {
-                    AnalyticsHomeScreen()
+                    AnalyticsHomeScreen(onLogout = { logout() })
                 }
             } else {
                 BrigadistApp(Orquestador(user!!, this@MainActivity), onLogout = { logout() })

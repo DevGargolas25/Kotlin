@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -14,8 +14,11 @@ import com.example.brigadist.R
 
 @Composable
 fun AnalyticsHomeScreen(
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isLoggingOut by remember { mutableStateOf(false) }
+    var logoutError by remember { mutableStateOf<String?>(null) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -50,5 +53,49 @@ fun AnalyticsHomeScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        // Logout Button
+        Button(
+            onClick = {
+                isLoggingOut = true
+                logoutError = null
+                try {
+                    onLogout()
+                } catch (e: Exception) {
+                    logoutError = "Logout failed. Please try again."
+                    isLoggingOut = false
+                }
+            },
+            enabled = !isLoggingOut,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp) // 48dp touch target
+        ) {
+            if (isLoggingOut) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = stringResource(R.string.logout_button),
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+        
+        // Error message
+        logoutError?.let { error ->
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
