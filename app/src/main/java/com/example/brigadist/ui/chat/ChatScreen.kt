@@ -1,5 +1,9 @@
 package com.example.brigadist.ui.chat
 
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.BuildConfig
@@ -21,6 +26,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 private data class UiMessage(val role: String, val content: String)
 
@@ -31,6 +39,40 @@ If danger is life-threatening, first instruct the user to call the local emergen
 For untrained users and an unresponsive adult not breathing normally, advise hands-only CPR.
 Give immediate steps before asking one focused follow-up question if needed. English only.
 """
+
+// Emergency fallback message content
+private const val EMERGENCY_FALLBACK_MESSAGE = """If you're in immediate danger, call 123 now.
+
+FIRE — What to do
+• Get low to avoid smoke; cover mouth and nose.
+• Use stairs, never elevators.
+• If clothes catch fire: STOP, DROP & ROLL.
+• Close doors behind you to slow fire spread.
+• Once outside, stay out and go to a safe point.
+
+EARTHQUAKE — What to do
+• DROP, COVER, and HOLD ON under sturdy furniture or next to an interior wall.
+• Stay away from windows and heavy objects.
+• If you're outside, move to an open area away from facades and power lines.
+• Expect aftershocks; evacuate calmly when shaking stops and routes are clear.
+
+Colombia emergency numbers
+• 123 — National unified emergency line (recommended)
+• 119 — Firefighters (direct)
+• 125 — Ambulances / Secretariat of Health
+• 132 — Colombian Red Cross
+• 112 — National Police (alternate)
+
+When you regain connection, I'll resume normal assistance."""
+
+private fun isNetworkError(exception: Exception): Boolean {
+    return exception is IOException ||
+            exception is SocketTimeoutException ||
+            exception is UnknownHostException ||
+            exception.message?.contains("network", ignoreCase = true) == true ||
+            exception.message?.contains("host", ignoreCase = true) == true ||
+            exception.message?.contains("timeout", ignoreCase = true) == true
+}
 
 private fun callGroq(history: List<UiMessage>): String {
     val apiKey = BuildConfig.GROQ_API_KEY
@@ -78,14 +120,61 @@ fun ChatScreen() {
     var input by rememberSaveable { mutableStateOf("") }
     var sending by rememberSaveable { mutableStateOf(false) }
     var showError by rememberSaveable { mutableStateOf(false) }
+    var isOffline by rememberSaveable { mutableStateOf(false) }
+    var hasShownFallback by rememberSaveable { mutableStateOf(false) }
     
     val messages = rememberSaveable { mutableStateListOf(UiMessage("system", SYSTEM_PROMPT)) }
     val listState = rememberLazyListState()
+    
+    // Track last failed message for retry
+    var lastFailedMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    
+    // Connectivity monitoring
+    val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+    
+    LaunchedEffect(Unit) {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOffline = false
+            }
+            
+            override fun onLost(network: Network) {
+                isOffline = true
+            }
+            
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                isOffline = !hasInternet
+            }
+        }
+        
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+        
+        // Check initial connectivity
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
+        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        isOffline = !hasInternet
+    }
     
     // Auto-scroll to bottom when new messages are added
     LaunchedEffect(messages.size) {
         if (messages.size > 1) { // Skip system message
             listState.animateScrollToItem(0)
+        }
+    }
+    
+    // Show offline fallback message once when going offline
+    LaunchedEffect(isOffline) {
+        if (isOffline && !hasShownFallback && messages.size == 1) {
+            messages.add(UiMessage("assistant", EMERGENCY_FALLBACK_MESSAGE))
+            hasShownFallback = true
         }
     }
     
@@ -160,15 +249,56 @@ fun ChatScreen() {
                 onValueChange = { input = it },
                 placeholder = { Text("Ask about emergency procedures...") },
                 modifier = Modifier.weight(1f),
-                enabled = !sending,
+                enabled = !sending && !isOffline,
                 maxLines = 1
             )
             
             Spacer(Modifier.width(8.dp))
             
+            // Retry button when offline and there's a failed message
+            if (isOffline && lastFailedMessage != null) {
+                Button(
+                    onClick = {
+                        if (!sending && !isOffline) {
+                            val messageToSend = lastFailedMessage!!
+                            lastFailedMessage = null
+                            messages.add(UiMessage("user", messageToSend))
+                            sending = true
+                            
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val reply = callGroq(messages.filter { it.role != "system" })
+                                    withContext(Dispatchers.Main) {
+                                        messages.add(UiMessage("assistant", reply))
+                                        sending = false
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        if (isNetworkError(e)) {
+                                            messages.add(UiMessage("assistant", "I'm having trouble connecting. " + 
+                                                if (!isOffline) "Please try again." else EMERGENCY_FALLBACK_MESSAGE))
+                                            lastFailedMessage = messageToSend
+                                        } else {
+                                            messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
+                                        }
+                                        sending = false
+                                        showError = true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(48.dp),
+                    enabled = !isOffline
+                ) {
+                    Text("Retry", style = MaterialTheme.typography.labelSmall)
+                }
+                Spacer(Modifier.width(8.dp))
+            }
+            
             FloatingActionButton(
                 onClick = {
-                    if (input.isNotBlank() && !sending) {
+                    if (input.isNotBlank() && !sending && !isOffline) {
                         val userMessage = UiMessage("user", input.trim())
                         messages.add(userMessage)
                         val currentInput = input
@@ -184,21 +314,27 @@ fun ChatScreen() {
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
-                                    messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
-                                    sending = false
-                                    showError = true
+                                    if (isNetworkError(e)) {
+                                        messages.add(UiMessage("assistant", EMERGENCY_FALLBACK_MESSAGE))
+                                        lastFailedMessage = currentInput
+                                        sending = false
+                                    } else {
+                                        messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
+                                        sending = false
+                                        showError = true
+                                    }
                                 }
                             }
                         }
                     }
                 },
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(48.dp).alpha(if (!sending && !isOffline) 1f else 0.5f),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
                     imageVector = Icons.Default.Send,
-                    contentDescription = "Send",
+                    contentDescription = "Send message",
                     modifier = Modifier.size(20.dp)
                 )
             }
