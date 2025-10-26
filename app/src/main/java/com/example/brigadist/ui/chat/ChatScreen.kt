@@ -30,7 +30,7 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-private data class UiMessage(val role: String, val content: String)
+private data class UiMessage(val role: String, val content: String, val isPending: Boolean = false)
 
 private const val SYSTEM_PROMPT = """
 You are a calm, concise campus emergency assistant. Always prioritize immediate safety.
@@ -121,13 +121,13 @@ fun ChatScreen() {
     var sending by rememberSaveable { mutableStateOf(false) }
     var showError by rememberSaveable { mutableStateOf(false) }
     var isOffline by rememberSaveable { mutableStateOf(false) }
-    var hasShownFallback by rememberSaveable { mutableStateOf(false) }
+    var showOfflineBanner by rememberSaveable { mutableStateOf(false) }
     
     val messages = rememberSaveable { mutableStateListOf(UiMessage("system", SYSTEM_PROMPT)) }
     val listState = rememberLazyListState()
     
-    // Track last failed message for retry
-    var lastFailedMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    // Track last pending message index for retry
+    var lastPendingMessageIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     
     // Connectivity monitoring
     val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
@@ -170,19 +170,18 @@ fun ChatScreen() {
         }
     }
     
-    // Show offline fallback message once when going offline
-    LaunchedEffect(isOffline) {
-        if (isOffline && !hasShownFallback && messages.size == 1) {
-            messages.add(UiMessage("assistant", EMERGENCY_FALLBACK_MESSAGE))
-            hasShownFallback = true
-        }
-    }
-    
     // Show error snackbar
     if (showError) {
         LaunchedEffect(Unit) {
             delay(3000)
             showError = false
+        }
+    }
+    
+    // Offline banner visibility
+    if (showOfflineBanner && !isOffline) {
+        LaunchedEffect(Unit) {
+            showOfflineBanner = false
         }
     }
     
@@ -209,7 +208,7 @@ fun ChatScreen() {
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     // Show typing indicator if sending
-                    if (sending) {
+                    if (sending && !isOffline) {
                         item {
                             Row {
                                 Surface(
@@ -229,9 +228,82 @@ fun ChatScreen() {
                     }
                     
                     // Messages (skip system message)
-                    items(messages.drop(1).asReversed(), key = { "${it.role}_${it.content}" }) { msg ->
+                    items(messages.drop(1).asReversed(), key = { "${it.role}_${it.content}_${it.isPending}" }) { msg ->
                         MessageBubble(msg)
                         Spacer(Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
+
+        // Offline banner with actions
+        if (showOfflineBanner) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "No internet connection.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    Row {
+                        TextButton(
+                            onClick = {
+                                // Retry logic
+                                lastPendingMessageIndex?.let { index ->
+                                    if (!isOffline && index in messages.indices) {
+                                        val pendingMessage = messages[index]
+                                        messages[index] = pendingMessage.copy(isPending = false)
+                                        sending = true
+                                        
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                val reply = callGroq(messages.filter { it.role != "system" })
+                                                withContext(Dispatchers.Main) {
+                                                    messages.add(UiMessage("assistant", reply))
+                                                    sending = false
+                                                    showOfflineBanner = false
+                                                    lastPendingMessageIndex = null
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    messages[index] = pendingMessage
+                                                    sending = false
+                                                    if (!isNetworkError(e)) {
+                                                        showError = true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isOffline
+                        ) {
+                            Text("Retry", style = MaterialTheme.typography.labelLarge)
+                        }
+                        
+                        Spacer(Modifier.width(8.dp))
+                        
+                        TextButton(
+                            onClick = {
+                                // Insert emergency tips
+                                messages.add(UiMessage("assistant", EMERGENCY_FALLBACK_MESSAGE))
+                            }
+                        ) {
+                            Text("Emergency tips", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }
@@ -249,59 +321,19 @@ fun ChatScreen() {
                 onValueChange = { input = it },
                 placeholder = { Text("Ask about emergency procedures...") },
                 modifier = Modifier.weight(1f),
-                enabled = !sending && !isOffline,
+                enabled = !sending,
                 maxLines = 1
             )
             
             Spacer(Modifier.width(8.dp))
             
-            // Retry button when offline and there's a failed message
-            if (isOffline && lastFailedMessage != null) {
-                Button(
-                    onClick = {
-                        if (!sending && !isOffline) {
-                            val messageToSend = lastFailedMessage!!
-                            lastFailedMessage = null
-                            messages.add(UiMessage("user", messageToSend))
-                            sending = true
-                            
-                            scope.launch(Dispatchers.IO) {
-                                try {
-                                    val reply = callGroq(messages.filter { it.role != "system" })
-                                    withContext(Dispatchers.Main) {
-                                        messages.add(UiMessage("assistant", reply))
-                                        sending = false
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        if (isNetworkError(e)) {
-                                            messages.add(UiMessage("assistant", "I'm having trouble connecting. " + 
-                                                if (!isOffline) "Please try again." else EMERGENCY_FALLBACK_MESSAGE))
-                                            lastFailedMessage = messageToSend
-                                        } else {
-                                            messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
-                                        }
-                                        sending = false
-                                        showError = true
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier.size(48.dp),
-                    enabled = !isOffline
-                ) {
-                    Text("Retry", style = MaterialTheme.typography.labelSmall)
-                }
-                Spacer(Modifier.width(8.dp))
-            }
-            
             FloatingActionButton(
                 onClick = {
-                    if (input.isNotBlank() && !sending && !isOffline) {
+                    if (input.isNotBlank() && !sending) {
                         val userMessage = UiMessage("user", input.trim())
                         messages.add(userMessage)
                         val currentInput = input
+                        val messageIndex = messages.size - 1
                         input = ""
                         sending = true
                         
@@ -311,24 +343,27 @@ fun ChatScreen() {
                                 withContext(Dispatchers.Main) {
                                     messages.add(UiMessage("assistant", reply))
                                     sending = false
+                                    showOfflineBanner = false
+                                    lastPendingMessageIndex = null
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
                                     if (isNetworkError(e)) {
-                                        messages.add(UiMessage("assistant", EMERGENCY_FALLBACK_MESSAGE))
-                                        lastFailedMessage = currentInput
-                                        sending = false
+                                        // Mark message as pending and show banner
+                                        messages[messageIndex] = userMessage.copy(isPending = true)
+                                        lastPendingMessageIndex = messageIndex
+                                        showOfflineBanner = true
                                     } else {
                                         messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
-                                        sending = false
                                         showError = true
                                     }
+                                    sending = false
                                 }
                             }
                         }
                     }
                 },
-                modifier = Modifier.size(48.dp).alpha(if (!sending && !isOffline) 1f else 0.5f),
+                modifier = Modifier.size(48.dp).alpha(if (!sending) 1f else 0.5f),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -359,6 +394,7 @@ fun ChatScreen() {
 @Composable
 private fun MessageBubble(message: UiMessage) {
     val isUser = message.role == "user"
+    val isPending = message.isPending
     
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -367,16 +403,34 @@ private fun MessageBubble(message: UiMessage) {
         Surface(
             color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier.widthIn(max = 280.dp).alpha(if (isPending) 0.6f else 1f)
         ) {
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-                Text(
-                    text = if (isUser) "You" else "Chat",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isUser) "You" else "Chat",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                    if (isPending) {
+                        Spacer(Modifier.width(4.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "Pending",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = message.content,
