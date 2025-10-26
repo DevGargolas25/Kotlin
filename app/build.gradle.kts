@@ -89,8 +89,6 @@ dependencies {
 
     // Firebase Realtime Database
     implementation("com.google.firebase:firebase-database-ktx")
-
-    // Firebase Firestore
     implementation("com.google.firebase:firebase-firestore-ktx")
 
     // Firebase Analytics (opcional pero recomendado)
@@ -110,4 +108,6 @@ dependencies {
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.3")
 
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
