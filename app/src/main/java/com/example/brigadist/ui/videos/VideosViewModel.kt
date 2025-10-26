@@ -28,9 +28,11 @@ class VideosViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            firebaseVideoAdapter.getVideos().collect {
-                _videos.value = it
-                _filteredVideos.value = it
+            firebaseVideoAdapter.getVideos().collect { videoList ->
+                val sortedVideos = videoList.sortedByDescending { it.views }
+                _videos.value = sortedVideos
+                // Re-apply filters whenever the source data changes
+                filterVideos()
             }
         }
     }
@@ -61,5 +63,13 @@ class VideosViewModel : ViewModel() {
             val matchesTags = selectedTags.isEmpty() || video.tags.any { it in selectedTags }
             matchesSearchText && matchesTags
         }
+    }
+
+    fun incrementViewCount(videoId: String) {
+        firebaseVideoAdapter.incrementViewCount(videoId)
+    }
+
+    fun toggleLike(videoId: String, userId: String) {
+        firebaseVideoAdapter.toggleLike(videoId, userId)
     }
 }
