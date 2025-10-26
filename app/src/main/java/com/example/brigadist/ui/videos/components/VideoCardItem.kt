@@ -1,18 +1,25 @@
-// ui/videos/components/VideoCardItem.kt
 package com.example.brigadist.ui.videos.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.example.brigadist.di.ImageLoaderModule
 import com.example.brigadist.ui.videos.model.Video
 
 @Composable
@@ -28,38 +35,18 @@ fun VideoCardItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier.fillMaxWidth()
     ) {
+        val context = LocalContext.current
         Column {
-            // Thumbnail
-            Box(
+            AsyncImage(
+                model = video.thumbnail,
+                contentDescription = "Video thumbnail for ${video.title}",
+                imageLoader = ImageLoaderModule.provideImageLoader(context),
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.PlayArrow,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(56.dp)
-                )
-
-                // duration pill (center-right on the thumbnail)
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 12.dp)
-                ) {
-                    Text(
-                        text = video.duration,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    )
-                }
-            }
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+            )
 
             // Info block
             Column(Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 14.dp)) {
@@ -83,7 +70,7 @@ fun VideoCardItem(
                 Spacer(Modifier.height(12.dp))
 
                 // Meta: author • views • age
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row {
                     Text(
                         text = video.author,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
