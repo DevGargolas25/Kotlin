@@ -13,16 +13,27 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.BuildConfig
+import com.example.brigadist.R
+import com.example.brigadist.analytics.AnalyticsHelper
+import com.example.brigadist.utils.NetworkConnectivityHelper
 import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import java.util.*
 
-private data class UiMessage(val role: String, val content: String)
+private data class UiMessage(
+    val role: String,
+    val content: String,
+    val isOfflineFallback: Boolean = false
+)
 
 private const val SYSTEM_PROMPT = """
 You are a calm, concise campus emergency assistant. Always prioritize immediate safety.
@@ -174,9 +185,32 @@ fun ChatScreen() {
                         val currentInput = input
                         input = ""
                         sending = true
-                        
+
                         scope.launch(Dispatchers.IO) {
                             try {
+                                // Check network connectivity before making API call
+                                val isOnline = NetworkConnectivityHelper.isNetworkAvailable(context)
+
+                                if (!isOnline) {
+                                    // Use offline fallback immediately
+                                    val fallbackMessage = context.getString(R.string.offline_fallback_message)
+                                    val locale = Locale.getDefault().language
+
+                                    // Track offline fallback usage
+                                    AnalyticsHelper.trackOfflineFallbackUsed(
+                                        reason = "no_internet",
+                                        appVersion = BuildConfig.VERSION_NAME,
+                                        locale = locale
+                                    )
+
+                                    withContext(Dispatchers.Main) {
+                                        messages.add(UiMessage("assistant", fallbackMessage, isOfflineFallback = true))
+                                        sending = false
+                                    }
+                                    return@launch
+                                }
+
+                                // Network available, proceed with Groq API call
                                 val reply = callGroq(messages.filter { it.role != "system" })
                                 withContext(Dispatchers.Main) {
                                     messages.add(UiMessage("assistant", reply))
@@ -184,9 +218,31 @@ fun ChatScreen() {
                                 }
                             } catch (e: Exception) {
                                 withContext(Dispatchers.Main) {
-                                    messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
+                                    // Check if exception is network-related
+                                    val isNetworkError = e is SocketTimeoutException ||
+                                                        e is UnknownHostException ||
+                                                        e is java.net.ConnectException ||
+                                                        e.message?.contains("timeout", ignoreCase = true) == true ||
+                                                        e.message?.contains("network", ignoreCase = true) == true
+
+                                    if (isNetworkError) {
+                                        // Use offline fallback for network errors
+                                        val fallbackMessage = context.getString(R.string.offline_fallback_message)
+                                        val locale = Locale.getDefault().language
+
+                                        AnalyticsHelper.trackOfflineFallbackUsed(
+                                            reason = "network_error",
+                                            appVersion = BuildConfig.VERSION_NAME,
+                                            locale = locale
+                                        )
+
+                                        messages.add(UiMessage("assistant", fallbackMessage, isOfflineFallback = true))
+                                    } else {
+                                        // Other errors, show generic error without exposing stack trace
+                                        messages.add(UiMessage("assistant", "I'm having trouble right now. If this is an emergency, call your local emergency number immediately."))
+                                        showError = true
+                                    }
                                     sending = false
-                                    showError = true
                                 }
                             }
                         }
@@ -223,7 +279,8 @@ fun ChatScreen() {
 @Composable
 private fun MessageBubble(message: UiMessage) {
     val isUser = message.role == "user"
-    
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -236,11 +293,33 @@ private fun MessageBubble(message: UiMessage) {
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-                Text(
-                    text = if (isUser) "You" else "Chat",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
+                // Show sender label and offline tag if applicable
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = if (isUser) "You" else "Chat",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+
+                    // Show offline tag for fallback messages
+                    if (message.isOfflineFallback) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.offline_fallback_tag),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = message.content,

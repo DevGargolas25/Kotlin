@@ -27,4 +27,8 @@
     
     <!-- Logout strings -->
     <string name="logout_button">Log out</string>
+
+    <!-- Offline fallback strings -->
+    <string name="offline_fallback_tag">Offline safety tip</string>
+    <string name="offline_fallback_message">OFFLINE SAFETY TIP (Colombia)\n\nIf you\'re in immediate danger, call 123 now.\n\nFIRE — What to do\n• Get low to avoid smoke; cover mouth and nose.\n• Use stairs, never elevators.\n• If clothes catch fire: STOP, DROP &amp; ROLL.\n• Close doors behind you to slow fire spread.\n• Once outside, stay out and go to a safe point.\n\nEARTHQUAKE — What to do\n• DROP, COVER, and HOLD ON under sturdy furniture or next to an interior wall.\n• Stay away from windows and heavy objects.\n• If you\'re outside, move to an open area away from facades and power lines.\n• Expect aftershocks; evacuate calmly when shaking stops and routes are clear.\n\nColombia emergency numbers\n• 123 — National unified emergency line (recommended)\n• 119 — Firefighters (direct)\n• 125 — Ambulances / Secretariat of Health\n• 132 — Colombian Red Cross\n• 112 — National Police (alternate)\n\nWhen you regain connection, I\'ll resume normal assistance.</string>
 </resources>

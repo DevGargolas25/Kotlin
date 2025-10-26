@@ -96,4 +96,21 @@ object AnalyticsHelper {
             firebaseAnalytics.logEvent("permission_status_change", bundle)
         }
     }
+
+    /**
+     * Track when the offline emergency fallback is used in the chat.
+     * This helps monitor network reliability and fallback usage patterns.
+     */
+    fun trackOfflineFallbackUsed(reason: String, appVersion: String, locale: String) {
+        executeWithEmail { email ->
+            val bundle = Bundle().apply {
+                putString("reason", reason)
+                putString("app_version", appVersion)
+                putString("locale", locale)
+                putLong("timestamp", System.currentTimeMillis())
+                email?.let { putString("user_email", it) }
+            }
+            firebaseAnalytics.logEvent("offline_fallback_used", bundle)
+        }
+    }
 }
