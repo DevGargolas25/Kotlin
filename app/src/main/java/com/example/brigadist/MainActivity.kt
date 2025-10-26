@@ -36,6 +36,7 @@ import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
 import com.example.brigadist.ui.analytics.AnalyticsHomeScreen
+import com.example.brigadist.analytics.AnalyticsHelper
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
         credentialsManager.getCredentials(object : Callback<Credentials, CredentialsManagerException> {
             override fun onSuccess(result: Credentials) {
                 user = credentialsToUser(result)
+                AnalyticsHelper.setCurrentUser(user)
                 
                 // Check userType for existing credentials
                 user?.let { currentUser ->
@@ -106,6 +108,7 @@ class MainActivity : ComponentActivity() {
                 override fun onSuccess(result: Credentials) {
                     credentialsManager.saveCredentials(result)
                     user = credentialsToUser(result)
+                    AnalyticsHelper.setCurrentUser(user)
                     
                     // Check userType after successful login
                     user?.let { currentUser ->
@@ -132,6 +135,7 @@ class MainActivity : ComponentActivity() {
                     credentialsManager.clearCredentials()
                     user = null
                     isAnalyticsUser = false
+                    AnalyticsHelper.setCurrentUser(null)
                 }
             })
     }
