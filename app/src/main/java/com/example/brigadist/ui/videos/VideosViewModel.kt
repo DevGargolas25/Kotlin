@@ -1,17 +1,23 @@
 package com.example.brigadist.ui.videos
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.brigadist.data.FirebaseVideoAdapter
+import com.example.brigadist.data.VideoPreloader
 import com.example.brigadist.ui.videos.model.Video
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class VideosViewModel : ViewModel() {
+class VideosViewModel(application: Application) : AndroidViewModel(application) {
 
     private val firebaseVideoAdapter = FirebaseVideoAdapter()
+    
+    // Initialize VideoPreloader with application context
+    // This will manage ExoPlayer instances for preloading 5 seconds of each video
+    private val preloader = VideoPreloader(application.applicationContext)
 
     private val _videos = MutableStateFlow<List<Video>>(emptyList())
     val videos = _videos.asStateFlow()
@@ -32,6 +38,10 @@ class VideosViewModel : ViewModel() {
                 val sortedVideos = it.sortedByDescending { it.views }
                 _videos.value = sortedVideos
                 _filteredVideos.value = sortedVideos
+                
+                // CRITICAL: Start preloading all videos when list loads
+                // This launches background coroutines that download 5s buffer for each video
+                preloader.preloadVideos(sortedVideos)
             }
         }
     }
@@ -70,5 +80,23 @@ class VideosViewModel : ViewModel() {
 
     fun toggleLike(videoId: String, userId: String) {
         firebaseVideoAdapter.toggleLike(videoId, userId)
+    }
+    
+    /**
+     * Get the VideoPreloader instance to pass to composables.
+     * This allows UI components to access preloaded ExoPlayer instances.
+     */
+    fun getPreloader(): VideoPreloader {
+        return preloader
+    }
+    
+    /**
+     * Clean up resources when ViewModel is cleared.
+     * This releases all ExoPlayer instances to prevent memory leaks.
+     */
+    override fun onCleared() {
+        super.onCleared()
+        // Prevent memory leaks by releasing all ExoPlayer instances
+        preloader.releaseAll()
     }
 }

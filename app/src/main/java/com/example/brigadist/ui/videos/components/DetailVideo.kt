@@ -1,5 +1,6 @@
 package com.example.brigadist.ui.videos.components
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,22 +18,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
+import com.example.brigadist.data.VideoPreloader
 import com.example.brigadist.ui.videos.model.Video
 
+@OptIn(UnstableApi::class)
 @Composable
 fun DetailVideo(
-    video: Video, 
+    video: Video,
+    preloader: VideoPreloader,
     modifier: Modifier = Modifier,
     onLikeClicked: () -> Unit
 ) {
     val context = LocalContext.current
+
+    // Trust the preloader to always provide a player, either from memory or by creating one from the cache.
     val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(video.url))
-            prepare()
+        preloader.getPlayer(video.id, video.url)?.apply {
+            // Start playback when the view is ready
             playWhenReady = true
         }
     }
@@ -56,7 +60,9 @@ fun DetailVideo(
             )
         ) {
             onDispose {
-                exoPlayer.release()
+                // The UI should only pause the player.
+                // The VideoPreloader is responsible for releasing it to prevent memory leaks.
+                exoPlayer?.playWhenReady = false
             }
         }
 

@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+//import androidx.lifecycle.viewmodel.compose.androidViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.brigadist.ui.videos.components.DetailVideo
 import com.example.brigadist.ui.videos.model.Video
@@ -26,6 +27,9 @@ fun VideoDetailScreen(
     val videos by videosViewModel.videos.collectAsState()
     // Find the most up-to-date version of the video, falling back to the initial one
     val currentVideo = videos.find { it.id == video.id } ?: video
+
+    // Get the VideoPreloader from the ViewModel
+    val preloader = videosViewModel.getPreloader()
 
     LaunchedEffect(video.id) {
         videosViewModel.incrementViewCount(video.id)
@@ -57,6 +61,7 @@ fun VideoDetailScreen(
     ) { innerPadding ->
         DetailVideo(
             video = currentVideo, // Pass the live video object to the detail view
+            preloader = preloader, // Pass the preloader for instant playback
             modifier = Modifier.padding(innerPadding),
             onLikeClicked = { videosViewModel.toggleLike(currentVideo.id, "USER_ID_PLACEHOLDER") }
         )

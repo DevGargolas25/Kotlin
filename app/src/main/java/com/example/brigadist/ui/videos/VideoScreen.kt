@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+//import androidx.lifecycle.viewmodel.compose.androidViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.brigadist.ui.videos.components.CategoryChipsRow
 import com.example.brigadist.ui.videos.components.VideoCardItem
@@ -17,12 +18,12 @@ import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun VideosScreen(
-    viewModel: VideosViewModel = viewModel(),
+    videosViewModel: VideosViewModel = viewModel(),
     onVideoClick: (Video) -> Unit
 ) {
-    val searchText by viewModel.searchText.collectAsState()
-    val selectedTags by viewModel.selectedTags.collectAsState()
-    val filteredVideos by viewModel.filteredVideos.collectAsState()
+    val searchText by videosViewModel.searchText.collectAsState()
+    val selectedTags by videosViewModel.selectedTags.collectAsState()
+    val filteredVideos by videosViewModel.filteredVideos.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -39,7 +40,7 @@ fun VideosScreen(
                     Spacer(Modifier.height(12.dp))
                     VideoSearchBar(
                         value = searchText,
-                        onValueChange = viewModel::onSearchTextChange,
+                        onValueChange = videosViewModel::onSearchTextChange,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -47,11 +48,11 @@ fun VideosScreen(
         }
         item {
             Spacer(Modifier.height(12.dp))
-            val allTags = viewModel.videos.collectAsState().value.flatMap { it.tags }.distinct()
+            val allTags = videosViewModel.videos.collectAsState().value.flatMap { it.tags }.distinct()
             CategoryChipsRow(
                 categories = allTags,
                 selected = selectedTags,
-                onSelected = { viewModel.onTagSelected(it) },
+                onSelected = { videosViewModel.onTagSelected(it) },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(Modifier.height(8.dp))
