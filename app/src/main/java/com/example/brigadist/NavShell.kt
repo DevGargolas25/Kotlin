@@ -14,7 +14,7 @@ import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.map.MapScreen
-import com.example.brigadist.ui.profile.ProfileScreen
+import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.SosConfirmationModal
 import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
