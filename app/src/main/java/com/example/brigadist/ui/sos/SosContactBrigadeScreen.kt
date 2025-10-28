@@ -1,25 +1,41 @@
 package com.example.brigadist.ui.sos
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
 import com.example.brigadist.R
 import com.example.brigadist.ui.chat.ChatScreen
-import com.example.brigadist.ui.map.MapScreen
-import com.example.brigadist.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.components.ContactBrigadeLocationTab
 import com.example.brigadist.ui.sos.components.ContactBrigadeMedicalTab
 
@@ -35,12 +51,14 @@ fun SosContactBrigadeScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(ContactBrigadeTab.Location) }
-    
+    // Get the current context, which is needed to launch an external app like the dialer
+    val context = LocalContext.current
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         text = "Contact Brigade",
                         style = MaterialTheme.typography.headlineSmall
@@ -59,10 +77,27 @@ fun SosContactBrigadeScreen(
                         )
                     }
                 },
+
+                actions = {
+                    IconButton(onClick = {
+
+                        val phoneNumber = "tel:1234567890"
+                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse(phoneNumber)
+                        }
+                        context.startActivity(dialIntent)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Call Brigade" // For accessibility
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     titleContentColor = MaterialTheme.colorScheme.onError,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onError
+                    navigationIconContentColor = MaterialTheme.colorScheme.onError,
+                    actionIconContentColor = MaterialTheme.colorScheme.onError // Make the phone icon white
                 )
             )
         }
