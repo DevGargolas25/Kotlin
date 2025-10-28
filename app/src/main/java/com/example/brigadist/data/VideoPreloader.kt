@@ -31,7 +31,7 @@ class VideoPreloader(private val context: Context) {
     private val cacheDataSourceFactory = CacheDataSource.Factory()
         .setCache(simpleCache)
         .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context))
-        .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        // Removed FLAG_IGNORE_CACHE_ON_ERROR to allow offline playback from cache
 
     fun preloadVideo(video: Video) {
         if (players.containsKey(video.id)) {
