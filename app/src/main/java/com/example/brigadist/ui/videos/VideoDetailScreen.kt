@@ -30,6 +30,9 @@ fun VideoDetailScreen(
 
     // Get the VideoPreloader from the ViewModel
     val preloader = videosViewModel.getPreloader()
+    
+    // Get offline state
+    val isOffline by videosViewModel.isOffline.collectAsState()
 
     LaunchedEffect(video.id) {
         videosViewModel.incrementViewCount(video.id)
@@ -62,6 +65,7 @@ fun VideoDetailScreen(
         DetailVideo(
             video = currentVideo, // Pass the live video object to the detail view
             preloader = preloader, // Pass the preloader for instant playback
+            isOffline = isOffline, // Pass offline state
             modifier = Modifier.padding(innerPadding),
             onLikeClicked = { videosViewModel.toggleLike(currentVideo.id, "USER_ID_PLACEHOLDER") }
         )

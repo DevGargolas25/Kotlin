@@ -11,7 +11,7 @@ import java.io.File
 object CacheUtil {
 
     private var simpleCache: SimpleCache? = null
-    private const val MAX_CACHE_SIZE_BYTES: Long = 200 * 1024 * 1024 // 200 MB
+    private const val MAX_CACHE_SIZE_BYTES: Long = 70 * 1024 * 1024 // 70 MB
 
     @Synchronized
     fun getSimpleCache(context: Context): SimpleCache {

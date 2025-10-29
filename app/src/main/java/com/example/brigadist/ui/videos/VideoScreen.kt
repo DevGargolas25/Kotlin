@@ -24,6 +24,7 @@ fun VideosScreen(
     val searchText by videosViewModel.searchText.collectAsState()
     val selectedTags by videosViewModel.selectedTags.collectAsState()
     val filteredVideos by videosViewModel.filteredVideos.collectAsState()
+    val isOffline by videosViewModel.isOffline.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -42,6 +43,27 @@ fun VideosScreen(
                         value = searchText,
                         onValueChange = videosViewModel::onSearchTextChange,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        
+        // Show offline message when no internet is available
+        if (isOffline) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = "No internet available, connect to load more videos.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
