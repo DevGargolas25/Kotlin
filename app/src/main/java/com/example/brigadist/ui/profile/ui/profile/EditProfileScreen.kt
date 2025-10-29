@@ -1,4 +1,4 @@
-package com.example.brigadist.ui.profile
+package com.example.brigadist.ui.profile.ui.profile
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
