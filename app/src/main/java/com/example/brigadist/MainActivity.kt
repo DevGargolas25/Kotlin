@@ -238,7 +238,8 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                 onTypeSelected = { emergencyType ->
                     selectedEmergencyType = emergencyType
                     showSosConfirmationModal = true
-                }
+                },
+                orquestador = orquestador
             )
         }
 

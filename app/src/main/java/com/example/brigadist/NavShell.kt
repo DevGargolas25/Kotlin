@@ -121,7 +121,8 @@ fun NavShell(
                     // Show Step 3: Confirmation modal
                     selectedEmergencyType = emergencyType
                     showSosConfirmationModal = true
-                }
+                },
+                orquestador = orquestador
             )
         }
 
