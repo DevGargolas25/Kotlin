@@ -24,8 +24,53 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.example.brigadist.Orquestador
+import com.example.brigadist.data.repository.FirebaseProfileRepository
+import com.example.brigadist.ui.profile.ProfilePresenter
+import com.example.brigadist.ui.profile.ProfileView
+import com.example.brigadist.ui.profile.model.Allergies
+import com.example.brigadist.ui.profile.model.EmergencyContact
 import com.example.brigadist.ui.profile.model.FirebaseUserProfile
+import com.example.brigadist.ui.profile.model.MedicalInfo
+import com.example.brigadist.ui.profile.model.Medications
 import com.example.brigadist.ui.profile.model.UserProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+
+
+data class ProfileScreenState(
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val userProfile: UserProfile? = null,
+    val emergencyContact: EmergencyContact? = null,
+    val medicalInfo: MedicalInfo? = null,
+    val allergies: Allergies? = null,
+    val medications: Medications? = null,
+    val firebaseUserProfile: FirebaseUserProfile? = null
+) {
+    // Helper function to get display data with fallback support (always returns non-null profile data)
+    fun getDisplayData(orquestador: Orquestador) = DisplayProfileData(
+        isLoading = isLoading,
+        errorMessage = errorMessage,
+        userProfile = userProfile ?: orquestador.getUserProfile(),
+        emergencyContact = emergencyContact ?: orquestador.getEmergencyContact(),
+        medicalInfo = medicalInfo ?: orquestador.getMedicalInfo(),
+        allergies = allergies ?: orquestador.getAllergies(),
+        medications = medications ?: orquestador.getMedications(),
+        firebaseUserProfile = firebaseUserProfile ?: orquestador.firebaseUserProfile
+    )
+}
+
+// Non-nullable data class for display purposes (always has valid data)
+data class DisplayProfileData(
+    val isLoading: Boolean,
+    val errorMessage: String?,
+    val userProfile: UserProfile,
+    val emergencyContact: EmergencyContact,
+    val medicalInfo: MedicalInfo,
+    val allergies: Allergies,
+    val medications: Medications,
+    val firebaseUserProfile: FirebaseUserProfile?
+)
 
 @Composable
 fun ProfileScreen(
@@ -33,30 +78,103 @@ fun ProfileScreen(
     orquestador: Orquestador,
     onLogout: () -> Unit
 ) {
+    // Single state holder for all screen state
+    var state by remember { mutableStateOf(ProfileScreenState()) }
+    
+    // Get display data with fallback support
+    val displayData = state.getDisplayData(orquestador)
+    
+    // Create ProfilePresenter and ProfileView implementation with state updater
+    val updateState: (ProfileScreenState.() -> ProfileScreenState) -> Unit = remember {
+        { update -> state = state.update() }
+    }
+    
+    val profileView = remember(updateState) {
+        object : ProfileView {
+            override fun showLoading() {
+                updateState { copy(isLoading = true, errorMessage = null) }
+            }
+            
+            override fun hideLoading() {
+                updateState { copy(isLoading = false) }
+            }
+            
+            override fun showProfile(profile: FirebaseUserProfile) {
+                // Legacy method - intentionally empty (not used with multithreading approach)
+            }
+            
+            override fun showProfileData(
+                firebaseProfile: FirebaseUserProfile,
+                userProfile: UserProfile,
+                emergencyContact: EmergencyContact,
+                medicalInfo: MedicalInfo,
+                allergies: Allergies,
+                medications: Medications
+            ) {
+                updateState {
+                    copy(
+                        isLoading = false,
+                        errorMessage = null,
+                        firebaseUserProfile = firebaseProfile,
+                        userProfile = userProfile,
+                        emergencyContact = emergencyContact,
+                        medicalInfo = medicalInfo,
+                        allergies = allergies,
+                        medications = medications
+                    )
+                }
+            }
+            
+            override fun showError(message: String) {
+                updateState { copy(isLoading = false, errorMessage = message) }
+            }
+            
+            override fun showSuccess(message: String) {
+                updateState { copy(isLoading = false) }
+            }
+        }
+    }
+    
+    val presenter = remember {
+        ProfilePresenter(
+            view = profileView,
+            repository = FirebaseProfileRepository(),
+            coroutineScope = CoroutineScope(Dispatchers.Default)
+        )
+    }
+    
+    // Load profile data using multithreading when screen is first shown
+    LaunchedEffect(Unit) {
+        val userEmail = displayData.userProfile.email.ifEmpty { orquestador.getUserProfile().email }
+        if (userEmail.isNotEmpty()) {
+            presenter.loadProfile(userEmail)
+        }
+    }
+    
     var isEditing by remember { mutableStateOf(false) }
-    val firebaseUserProfile = orquestador.firebaseUserProfile
-    val userProfile = orquestador.getUserProfile()
 
     if (isEditing) {
-        val profileToEdit = firebaseUserProfile ?: FirebaseUserProfile(
-            fullName = userProfile.fullName,
-            email = userProfile.email
+        val profileToEdit = displayData.firebaseUserProfile ?: FirebaseUserProfile(
+            fullName = displayData.userProfile.fullName,
+            email = displayData.userProfile.email
         )
 
         EditProfileScreen(
             profile = profileToEdit,
             onSave = { updatedProfile ->
+                presenter.saveProfile(updatedProfile)
+                // Also update Orquestador for backward compatibility
                 orquestador.updateUserProfile(updatedProfile)
                 isEditing = false
+                // Reload profile data after saving
+                if (updatedProfile.email.isNotEmpty()) {
+                    presenter.loadProfile(updatedProfile.email)
+                }
             },
             onCancel = { isEditing = false }
         )
     } else {
         val scrollState = rememberScrollState()
-        val emergencyContact = orquestador.getEmergencyContact()
-        val medicalInfo = orquestador.getMedicalInfo()
-        val allergies = orquestador.getAllergies()
-        val medications = orquestador.getMedications()
 
         Scaffold(
             modifier = modifier
@@ -68,7 +186,37 @@ fun ProfileScreen(
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                ProfileHeader(userProfile = userProfile, onEdit = { isEditing = true })
+                // Show loading indicator if loading
+                if (displayData.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                
+                // Show error message if any
+                displayData.errorMessage?.let { error ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Text(
+                            text = error,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+                
+                ProfileHeader(userProfile = displayData.userProfile, onEdit = { isEditing = true })
                 Spacer(modifier = Modifier.height(16.dp))
 
                 SectionCard(
@@ -76,10 +224,10 @@ fun ProfileScreen(
                     iconTint = MaterialTheme.colorScheme.primary,
                     title = "Personal Information"
                 ) {
-                    FieldRow(label = "Full Name", value = userProfile.fullName)
-                    FieldRow(label = "Student ID", value = userProfile.studentId)
-                    FieldRow(label = "Email", value = userProfile.email)
-                    FieldRow(label = "Phone", value = userProfile.phone)
+                    FieldRow(label = "Full Name", value = displayData.userProfile.fullName)
+                    FieldRow(label = "Student ID", value = displayData.userProfile.studentId)
+                    FieldRow(label = "Email", value = displayData.userProfile.email)
+                    FieldRow(label = "Phone", value = displayData.userProfile.phone)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -88,9 +236,9 @@ fun ProfileScreen(
                     iconTint = MaterialTheme.colorScheme.secondary,
                     title = "Emergency Contacts"
                 ) {
-                    FieldRow(label = "Primary Contact", value = emergencyContact.primaryContactName)
-                    FieldRow(label = "Primary Phone", value = emergencyContact.primaryContactPhone)
-                    FieldRow(label = "Secondary Contact", value = emergencyContact.secondaryContactName)
+                    FieldRow(label = "Primary Contact", value = displayData.emergencyContact.primaryContactName)
+                    FieldRow(label = "Primary Phone", value = displayData.emergencyContact.primaryContactPhone)
+                    FieldRow(label = "Secondary Contact", value = displayData.emergencyContact.secondaryContactName)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -99,10 +247,10 @@ fun ProfileScreen(
                     iconTint = MaterialTheme.colorScheme.primary,
                     title = "Medical Information"
                 ) {
-                    FieldRow(label = "Blood Type", value = medicalInfo.bloodType)
-                    FieldRow(label = "Primary Physician", value = medicalInfo.primaryPhysician)
-                    FieldRow(label = "Physician Phone", value = medicalInfo.physicianPhone)
-                    FieldRow(label = "Insurance Provider", value = medicalInfo.insuranceProvider)
+                    FieldRow(label = "Blood Type", value = displayData.medicalInfo.bloodType)
+                    FieldRow(label = "Primary Physician", value = displayData.medicalInfo.primaryPhysician)
+                    FieldRow(label = "Physician Phone", value = displayData.medicalInfo.physicianPhone)
+                    FieldRow(label = "Insurance Provider", value = displayData.medicalInfo.insuranceProvider)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -111,10 +259,10 @@ fun ProfileScreen(
                     iconTint = MaterialTheme.colorScheme.primary,
                     title = "Allergies"
                 ) {
-                    FieldRow(label = "Food Allergies", value = allergies.foodAllergies)
-                    FieldRow(label = "Environmental Allergies", value = allergies.environmentalAllergies)
-                    FieldRow(label = "Drug Allergies", value = allergies.drugAllergies)
-                    FieldRow(label = "Severity Notes", value = allergies.severityNotes)
+                    FieldRow(label = "Food Allergies", value = displayData.allergies.foodAllergies)
+                    FieldRow(label = "Environmental Allergies", value = displayData.allergies.environmentalAllergies)
+                    FieldRow(label = "Drug Allergies", value = displayData.allergies.drugAllergies)
+                    FieldRow(label = "Severity Notes", value = displayData.allergies.severityNotes)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -123,10 +271,10 @@ fun ProfileScreen(
                     iconTint = MaterialTheme.colorScheme.secondary,
                     title = "Current Medications"
                 ) {
-                    FieldRow(label = "Daily Medications", value = medications.dailyMedications)
-                    FieldRow(label = "Emergency Medications", value = medications.emergencyMedications)
-                    FieldRow(label = "Vitamins/Supplements", value = medications.vitaminsSupplements)
-                    FieldRow(label = "Special Instructions", value = medications.specialInstructions)
+                    FieldRow(label = "Daily Medications", value = displayData.medications.dailyMedications)
+                    FieldRow(label = "Emergency Medications", value = displayData.medications.emergencyMedications)
+                    FieldRow(label = "Vitamins/Supplements", value = displayData.medications.vitaminsSupplements)
+                    FieldRow(label = "Special Instructions", value = displayData.medications.specialInstructions)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -140,10 +288,6 @@ fun ProfileScreen(
 
 @Composable
 fun ProfileHeader(userProfile: UserProfile, onEdit: () -> Unit = {}) {
-    val avatarBackground = MaterialTheme.colorScheme.primaryContainer
-    val avatarTint = MaterialTheme.colorScheme.primary
-    val nameColour = MaterialTheme.colorScheme.onSurface
-    val roleColour = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -151,30 +295,28 @@ fun ProfileHeader(userProfile: UserProfile, onEdit: () -> Unit = {}) {
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(avatarBackground, shape = CircleShape),
+                .background(MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
-                tint = avatarTint,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = userProfile.fullName,
-                color = nameColour,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = "Student Brigade Member",
-                color = roleColour,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -226,28 +368,24 @@ fun SectionCard(
 
 @Composable
 fun FieldRow(label: String, value: String) {
-    val labelColour = MaterialTheme.colorScheme.onSurface
-    val valueColour = MaterialTheme.colorScheme.onSurface
-    val fieldBackground = MaterialTheme.colorScheme.surfaceVariant
     Text(
         text = label,
-        color = labelColour,
+        color = MaterialTheme.colorScheme.onSurface,
         style = MaterialTheme.typography.labelLarge
     )
     Spacer(modifier = Modifier.height(4.dp))
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = fieldBackground,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
             text = if (value.isNotBlank()) value else " ",
-            color = valueColour,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 12.dp)
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp)
         )
     }
     Spacer(modifier = Modifier.height(8.dp))

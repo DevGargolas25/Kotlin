@@ -56,16 +56,7 @@ class Orquestador(
         userRef.setValue(profile)
     }
 
-    fun getConversations(): List<ConversationUi> {
-        return listOf(
-            ConversationUi(1, "Brigade Assistant",
-                "The main assembly points are: Main Campus: Front park…", "10:32 AM", 2),
-            ConversationUi(2, "Brigade Team",
-                "Meeting tonight at 7 PM in room 203. Please confirm y…", "9:45 AM", 0),
-            ConversationUi(3, "Brigade Alerts",
-                "Weather alert: Strong winds expected this afternoon. St…", "Yesterday", 1),
-        )
-    }
+    
 
     fun getUserProfile(): UserProfile {
         return UserProfile(
