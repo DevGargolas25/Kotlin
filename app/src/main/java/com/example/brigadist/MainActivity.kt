@@ -26,8 +26,15 @@ import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
 import com.example.brigadist.ui.sos.SosConfirmationModal
+import com.example.brigadist.ui.sos.SosReconnectionModal
 import com.example.brigadist.ui.sos.SosContactBrigadeScreen
 import com.example.brigadist.ui.sos.components.EmergencyType
+import com.example.brigadist.data.PendingEmergencyStore
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import androidx.compose.ui.platform.LocalContext
 import com.example.brigadist.ui.theme.BrigadistTheme
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -141,6 +148,66 @@ class MainActivity : ComponentActivity() {
 fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
     // Collect theme state from Orchestrator's ThemeControlle
     val themeState by orquestador.themeController.themeState.collectAsState()
+    val context = LocalContext.current
+    
+    // Connectivity and pending emergency management
+    var isOffline by rememberSaveable { mutableStateOf(false) }
+    var showReconnectionModal by rememberSaveable { mutableStateOf(false) }
+    var wasOffline by rememberSaveable { mutableStateOf(false) }
+    val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
+
+    // Connectivity monitoring
+    LaunchedEffect(Unit) {
+        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+        
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOffline = false
+                // Check if we just came back online and have a pending emergency
+                if (wasOffline && pendingEmergencyStore.hasPendingEmergency()) {
+                    showReconnectionModal = true
+                }
+                wasOffline = false
+            }
+            
+            override fun onLost(network: Network) {
+                isOffline = true
+                wasOffline = true
+            }
+            
+            override fun onCapabilitiesChanged(
+                network: Network,
+                networkCapabilities: NetworkCapabilities
+            ) {
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                val wasOfflineBefore = isOffline
+                isOffline = !hasInternet
+                
+                // If we just came back online and have pending emergency
+                if (wasOfflineBefore && !isOffline && pendingEmergencyStore.hasPendingEmergency()) {
+                    showReconnectionModal = true
+                    wasOffline = false
+                } else if (isOffline) {
+                    wasOffline = true
+                }
+            }
+        }
+        
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+        
+        // Check initial connectivity
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
+        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        isOffline = !hasInternet
+        wasOffline = isOffline
+    }
 
     // Lifecycle management for theme controller
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -238,7 +305,8 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                 onTypeSelected = { emergencyType ->
                     selectedEmergencyType = emergencyType
                     showSosConfirmationModal = true
-                }
+                },
+                orquestador = orquestador
             )
         }
 
@@ -249,6 +317,23 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
                 onDismiss = {
                     showSosConfirmationModal = false
                     selectedEmergencyType = null
+                }
+            )
+        }
+        
+        // Reconnection Modal - appears when connection is restored and there's a pending emergency
+        if (showReconnectionModal) {
+            SosReconnectionModal(
+                onSend = {
+                    // Firebase persistence will automatically sync the queued emergency
+                    // Clear the pending flag since we're confirming the send
+                    pendingEmergencyStore.clearPendingEmergency()
+                    showReconnectionModal = false
+                },
+                onDismiss = {
+                    // User chose not to send, clear the pending flag
+                    pendingEmergencyStore.clearPendingEmergency()
+                    showReconnectionModal = false
                 }
             )
         }
