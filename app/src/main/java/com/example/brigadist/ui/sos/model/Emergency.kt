@@ -14,6 +14,7 @@ data class Emergency(
     var secondsResponse: Int = 5,
     var seconds_response: Int = 5,
     var updatedAt: Long = 0,
-    var userId: String = ""
+    var userId: String = "",
+    var ChatUsed: Boolean = false
 )
 

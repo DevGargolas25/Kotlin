@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -28,6 +29,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import com.example.brigadist.data.EmergencyRepository
+import com.example.brigadist.data.PendingEmergencyStore
+import com.example.brigadist.ui.sos.components.EmergencyType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -51,11 +56,34 @@ fun SosContactBrigadeScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(ContactBrigadeTab.Location) }
-    // Get the current context, which is needed to launch an external app like the dialer
+    var ChatUsed by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val emergencyRepository = remember { EmergencyRepository(context) }
+    val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
+
+    // Sender lambda available to UI actions
+    val sendMedicalEmergency: () -> Unit = {
+        EmergencyActions.createAndSaveEmergency(
+            context = context,
+            emergencyType = EmergencyType.MEDICAL,
+            emergencyRepository = emergencyRepository,
+            orquestador = orquestador,
+            pendingEmergencyStore = pendingEmergencyStore,
+            chatUsed = ChatUsed,
+            onSuccess = { },
+            onError = { },
+            onOffline = { }
+        )
+    }
+
+    // Send medical alert immediately when screen appears
+    LaunchedEffect(Unit) {
+        sendMedicalEmergency()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        floatingActionButton = {},
         topBar = {
             TopAppBar(
                 title = {
@@ -119,7 +147,18 @@ fun SosContactBrigadeScreen(
                     ContactBrigadeTab.values().forEachIndexed { index, tab ->
                         Tab(
                             selected = selectedTab == tab,
-                            onClick = { selectedTab = tab },
+                            onClick = {
+                                selectedTab = tab
+                                if (tab == ContactBrigadeTab.Assistant) {
+                                    ChatUsed = true
+                                    val userId = orquestador.getUserProfile().studentId.ifEmpty {
+                                        orquestador.firebaseUserProfile?.studentId ?: ""
+                                    }
+                                    if (userId.isNotBlank()) {
+                                        emergencyRepository.markChatUsedForLatest(userId)
+                                    }
+                                }
+                            },
                             modifier = Modifier.semantics {
                                 contentDescription = when (tab) {
                                     ContactBrigadeTab.Location -> "Location tab - View emergency location and brigade member"

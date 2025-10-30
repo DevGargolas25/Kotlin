@@ -19,6 +19,7 @@ object EmergencyActions {
         emergencyRepository: EmergencyRepository,
         orquestador: Orquestador,
         pendingEmergencyStore: PendingEmergencyStore? = null,
+        chatUsed: Boolean = false,
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
         onOffline: () -> Unit
@@ -55,7 +56,8 @@ object EmergencyActions {
                     secondsResponse = 5,
                     seconds_response = 5,
                     updatedAt = now,
-                    userId = userId
+                    userId = userId,
+                    ChatUsed = chatUsed
                 )
 
                 emergencyRepository.createEmergency(
@@ -80,7 +82,8 @@ object EmergencyActions {
                     secondsResponse = 5,
                     seconds_response = 5,
                     updatedAt = now,
-                    userId = userId
+                    userId = userId,
+                    ChatUsed = chatUsed
                 )
 
                 emergencyRepository.createEmergency(
@@ -106,7 +109,8 @@ object EmergencyActions {
                 secondsResponse = 5,
                 seconds_response = 5,
                 updatedAt = now,
-                userId = userId
+                userId = userId,
+                ChatUsed = chatUsed
             )
 
             emergencyRepository.createEmergency(

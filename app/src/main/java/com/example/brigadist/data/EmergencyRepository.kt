@@ -76,5 +76,21 @@ class EmergencyRepository(private val context: Context? = null) {
                 onError(exception.message ?: "Error al crear la emergencia")
             }
     }
+
+    /**
+     * Marks ChatUsed on the latest emergency created by the given userId.
+     */
+    fun markChatUsedForLatest(userId: String, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val query = database.orderByChild("userId").equalTo(userId).limitToLast(1)
+        query.get().addOnSuccessListener { snapshot ->
+            val lastChild = snapshot.children.lastOrNull()
+            if (lastChild == null) {
+                onComplete()
+                return@addOnSuccessListener
+            }
+            lastChild.ref.updateChildren(mapOf("ChatUsed" to true)).addOnSuccessListener { onComplete() }
+                .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update ChatUsed") }
+        }.addOnFailureListener { ex -> onError(ex.message ?: "Failed to query latest emergency") }
+    }
 }
 
