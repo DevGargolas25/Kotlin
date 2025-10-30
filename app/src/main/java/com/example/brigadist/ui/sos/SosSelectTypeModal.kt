@@ -320,19 +320,18 @@ internal fun getBuildingNameFromLocation(location: LatLng): String {
     data class BuildingInfo(val name: String, val coordinates: LatLng)
     
     val buildings = listOf(
-        BuildingInfo("LL", LatLng(4.60148, -74.06502)),
-        BuildingInfo("ML", LatLng(4.60183, -74.06409)),
-        BuildingInfo("CP", LatLng(4.60161, -74.06342)),
-        BuildingInfo("SD", LatLng(4.60088, -74.06463)),
-        BuildingInfo("W", LatLng(4.60113, -74.06410)),
-        BuildingInfo("AU", LatLng(4.60206, -74.06545)),
-        BuildingInfo("C", LatLng(4.60167, -74.06555)),
-        BuildingInfo("L", LatLng(4.60117, -74.06510)),
-        BuildingInfo("R", LatLng(4.60101, -74.06461)),
-        BuildingInfo("CT", LatLng(4.60195, -74.06620)),
-        BuildingInfo("CA", LatLng(4.60156, -74.06586)),
-        BuildingInfo("CD", LatLng(4.60266, -74.06655)),
-        BuildingInfo("Main Entrance", LatLng(4.60234, -74.06591))
+        BuildingInfo("LL", LatLng(4.602403, -74.065119)),
+        BuildingInfo("ML", LatLng( 4.602863, -74.065046)),
+        BuildingInfo("CJ", LatLng(4.601025,-74.066549)),
+        BuildingInfo("SD", LatLng(4.604219,-74.06588)),
+        BuildingInfo("W", LatLng(4.602362,-74.065019)),
+        BuildingInfo("AU", LatLng(4.602672, -74.06614)),
+        BuildingInfo("C", LatLng(4.601188,-74.065074)),
+        BuildingInfo("R", LatLng(4.601918, -74.064334)),
+        BuildingInfo("RGD", LatLng(4.602478, -74.065988)),
+        BuildingInfo("B", LatLng(4.601699, -74.065581)),
+
+
     )
     
     // Find the closest building using distance calculation
