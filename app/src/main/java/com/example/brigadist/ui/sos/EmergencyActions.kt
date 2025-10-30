@@ -20,7 +20,7 @@ object EmergencyActions {
         orquestador: Orquestador,
         pendingEmergencyStore: PendingEmergencyStore? = null,
         chatUsed: Boolean = false,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
         onOffline: () -> Unit
     ) {
@@ -58,7 +58,10 @@ object EmergencyActions {
                     updatedAt = now,
                     userId = userId,
                     ChatUsed = chatUsed
-                )
+                ).also { 
+                    // Ensure ChatUsed field is explicitly set with capital C
+                    it.ChatUsed = chatUsed 
+                }
 
                 emergencyRepository.createEmergency(
                     emergency = emergency,
@@ -84,7 +87,10 @@ object EmergencyActions {
                     updatedAt = now,
                     userId = userId,
                     ChatUsed = chatUsed
-                )
+                ).also { 
+                    // Ensure ChatUsed field is explicitly set with capital C
+                    it.ChatUsed = chatUsed 
+                }
 
                 emergencyRepository.createEmergency(
                     emergency = emergency,
@@ -111,7 +117,10 @@ object EmergencyActions {
                 updatedAt = now,
                 userId = userId,
                 ChatUsed = chatUsed
-            )
+            ).also { 
+                // Ensure ChatUsed field is explicitly set with capital C
+                it.ChatUsed = chatUsed 
+            }
 
             emergencyRepository.createEmergency(
                 emergency = emergency,

@@ -57,11 +57,12 @@ fun SosContactBrigadeScreen(
 ) {
     var selectedTab by remember { mutableStateOf(ContactBrigadeTab.Location) }
     var ChatUsed by remember { mutableStateOf(false) }
+    var lastEmergencyKey by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
     val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
 
-    // Sender lambda available to UI actions
+    // Sender lambda - tracks the push key so we can update ChatUsed later
     val sendMedicalEmergency: () -> Unit = {
         EmergencyActions.createAndSaveEmergency(
             context = context,
@@ -70,7 +71,7 @@ fun SosContactBrigadeScreen(
             orquestador = orquestador,
             pendingEmergencyStore = pendingEmergencyStore,
             chatUsed = ChatUsed,
-            onSuccess = { },
+            onSuccess = { key -> lastEmergencyKey = key },
             onError = { },
             onOffline = { }
         )
@@ -151,11 +152,8 @@ fun SosContactBrigadeScreen(
                                 selectedTab = tab
                                 if (tab == ContactBrigadeTab.Assistant) {
                                     ChatUsed = true
-                                    val userId = orquestador.getUserProfile().studentId.ifEmpty {
-                                        orquestador.firebaseUserProfile?.studentId ?: ""
-                                    }
-                                    if (userId.isNotBlank()) {
-                                        emergencyRepository.markChatUsedForLatest(userId)
+                                    lastEmergencyKey?.let { key ->
+                                        emergencyRepository.updateChatUsed(key)
                                     }
                                 }
                             },

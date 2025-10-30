@@ -29,13 +29,13 @@ class EmergencyRepository(private val context: Context? = null) {
      * and automatically synced when connection is restored.
      * 
      * @param emergency The emergency object to create (emergencyID will be generated if not set)
-     * @param onSuccess Callback invoked when emergency write is queued/sent
+     * @param onSuccess Callback invoked when emergency write is queued/sent, with the push key
      * @param onError Callback invoked with error message if creation fails
      * @param onOffline Callback invoked when device is offline (optional)
      */
     fun createEmergency(
         emergency: Emergency,
-        onSuccess: () -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
         onOffline: (() -> Unit)? = null
     ) {
@@ -52,7 +52,9 @@ class EmergencyRepository(private val context: Context? = null) {
             }
 
             // Write to Firebase (will be queued by persistence)
-            database.push().setValue(emergencyWithId)
+            val pushRef = database.push()
+            val pushKey = pushRef.key ?: ""
+            pushRef.setValue(emergencyWithId)
             // Only call onOffline, not onSuccess - this prevents the confirmation modal from showing
             onOffline?.invoke()
             return
@@ -68,9 +70,11 @@ class EmergencyRepository(private val context: Context? = null) {
         }
 
         // Write emergency to Firebase
-        database.push().setValue(emergencyWithId)
+        val pushRef = database.push()
+        val pushKey = pushRef.key ?: ""
+        pushRef.setValue(emergencyWithId)
             .addOnSuccessListener {
-                onSuccess()
+                onSuccess(pushKey)
             }
             .addOnFailureListener { exception ->
                 onError(exception.message ?: "Error al crear la emergencia")
@@ -78,19 +82,17 @@ class EmergencyRepository(private val context: Context? = null) {
     }
 
     /**
-     * Marks ChatUsed on the latest emergency created by the given userId.
+     * Updates ChatUsed field on a specific emergency by push key.
+     * Also removes any lowercase 'chatUsed' field that might exist.
      */
-    fun markChatUsedForLatest(userId: String, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        val query = database.orderByChild("userId").equalTo(userId).limitToLast(1)
-        query.get().addOnSuccessListener { snapshot ->
-            val lastChild = snapshot.children.lastOrNull()
-            if (lastChild == null) {
-                onComplete()
-                return@addOnSuccessListener
-            }
-            lastChild.ref.updateChildren(mapOf("ChatUsed" to true)).addOnSuccessListener { onComplete() }
-                .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update ChatUsed") }
-        }.addOnFailureListener { ex -> onError(ex.message ?: "Failed to query latest emergency") }
+    fun updateChatUsed(emergencyKey: String, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        val updates = mapOf(
+            "ChatUsed" to true,
+            "chatUsed" to null  // Remove lowercase field if it exists
+        )
+        database.child(emergencyKey).updateChildren(updates)
+            .addOnSuccessListener { onComplete() }
+            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update ChatUsed") }
     }
 }
 

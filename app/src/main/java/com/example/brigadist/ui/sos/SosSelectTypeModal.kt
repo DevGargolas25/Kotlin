@@ -139,7 +139,7 @@ fun SosSelectTypeModal(
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
                                     pendingEmergencyStore = pendingEmergencyStore,
-                                    onSuccess = {
+                                    onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.FIRE)
                                         onDismiss()
                                     },
@@ -170,7 +170,7 @@ fun SosSelectTypeModal(
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
                                     pendingEmergencyStore = pendingEmergencyStore,
-                                    onSuccess = {
+                                    onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.EARTHQUAKE)
                                         onDismiss()
                                     },
@@ -201,7 +201,7 @@ fun SosSelectTypeModal(
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
                                     pendingEmergencyStore = pendingEmergencyStore,
-                                    onSuccess = {
+                                    onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.MEDICAL)
                                         onDismiss()
                                     },
