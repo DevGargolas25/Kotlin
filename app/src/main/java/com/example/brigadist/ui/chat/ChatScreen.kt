@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -20,6 +22,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.BuildConfig
+import com.example.brigadist.data.AssistantLikesRepository
 import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -437,6 +440,19 @@ private fun MessageBubble(message: UiMessage) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                if (!isUser && !isPending) {
+                    Spacer(Modifier.height(6.dp))
+                    Row {
+                        IconButton(onClick = { AssistantLikesRepository.incrementLike() }) {
+                            Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = "Like")
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        IconButton(onClick = { AssistantLikesRepository.incrementDislike() }) {
+                            Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = "Dislike")
+                        }
+                    }
+                }
             }
         }
     }
