@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -127,6 +129,13 @@ fun ChatScreen() {
     var showOfflineBanner by rememberSaveable { mutableStateOf(false) }
     
     val messages = rememberSaveable { mutableStateListOf(UiMessage("system", SYSTEM_PROMPT)) }
+    // Per-message vote state for this session: true=like, false=dislike
+    val votes = rememberSaveable(
+        saver = mapSaver(
+            save = { it.toMap() },
+            restore = { restored -> mutableStateMapOf<String, Boolean>().apply { putAll(restored as Map<String, Boolean>) } }
+        )
+    ) { mutableStateMapOf<String, Boolean>() }
     val listState = rememberLazyListState()
     
     // Track last pending message index for retry
@@ -232,7 +241,13 @@ fun ChatScreen() {
                     
                     // Messages (skip system message)
                     items(messages.drop(1).asReversed(), key = { "${it.role}_${it.content}_${it.isPending}" }) { msg ->
-                        MessageBubble(msg)
+                        val vote = votes[msg.content]
+                        MessageBubble(message = msg, vote = vote) { liked ->
+                            if (vote == null) {
+                                if (liked) AssistantLikesRepository.incrementLike() else AssistantLikesRepository.incrementDislike()
+                                votes[msg.content] = liked
+                            }
+                        }
                         Spacer(Modifier.height(8.dp))
                     }
                 }
@@ -395,7 +410,7 @@ fun ChatScreen() {
 }
 
 @Composable
-private fun MessageBubble(message: UiMessage) {
+private fun MessageBubble(message: UiMessage, vote: Boolean?, onVote: (Boolean) -> Unit) {
     val isUser = message.role == "user"
     val isPending = message.isPending
     
@@ -441,15 +456,18 @@ private fun MessageBubble(message: UiMessage) {
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                if (!isUser && !isPending) {
+                if (!isUser) {
                     Spacer(Modifier.height(6.dp))
                     Row {
-                        IconButton(onClick = { AssistantLikesRepository.incrementLike() }) {
-                            Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = "Like")
+                        val canVote = vote == null && !isPending
+                        val likeTint = if (vote == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        val dislikeTint = if (vote == false) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        IconButton(onClick = { if (canVote) onVote(true) }, enabled = canVote) {
+                            Icon(imageVector = Icons.Filled.ThumbUp, contentDescription = "Like", tint = likeTint)
                         }
                         Spacer(Modifier.width(4.dp))
-                        IconButton(onClick = { AssistantLikesRepository.incrementDislike() }) {
-                            Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = "Dislike")
+                        IconButton(onClick = { if (canVote) onVote(false) }, enabled = canVote) {
+                            Icon(imageVector = Icons.Filled.ThumbDown, contentDescription = "Dislike", tint = dislikeTint)
                         }
                     }
                 }
