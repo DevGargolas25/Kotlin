@@ -1,4 +1,4 @@
-package com.example.brigadist.ui.sos.repository
+package com.example.brigadist.data
 
 import android.content.Context
 import android.net.ConnectivityManager
