@@ -1,6 +1,7 @@
 package com.example.brigadist.ui.sos.model
 
 import com.google.firebase.database.IgnoreExtraProperties
+import com.google.firebase.database.PropertyName
 
 @IgnoreExtraProperties
 data class Emergency(
@@ -14,6 +15,9 @@ data class Emergency(
     var secondsResponse: Int = 5,
     var seconds_response: Int = 5,
     var updatedAt: Long = 0,
-    var userId: String = ""
+    var userId: String = "",
+    @get:PropertyName("ChatUsed")
+    @set:PropertyName("ChatUsed")
+    var ChatUsed: Boolean = false
 )
 

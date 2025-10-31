@@ -29,10 +29,6 @@ import com.example.brigadist.data.PendingEmergencyStore
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.sos.components.SosTypeRow
 import com.example.brigadist.ui.sos.model.Emergency
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.model.LatLng
-import java.util.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -137,13 +133,13 @@ fun SosSelectTypeModal(
                             subtitle = "Report fire emergency or smoke detection",
                             onClick = {
                                 SosTelemetry.trackSosTypeSelected(EmergencyType.FIRE)
-                                createAndSaveEmergency(
+                                EmergencyActions.createAndSaveEmergency(
                                     context = context,
                                     emergencyType = EmergencyType.FIRE,
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
                                     pendingEmergencyStore = pendingEmergencyStore,
-                                    onSuccess = {
+                                    onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.FIRE)
                                         onDismiss()
                                     },
@@ -168,13 +164,13 @@ fun SosSelectTypeModal(
                             subtitle = "Report seismic activity or structural damage",
                             onClick = {
                                 SosTelemetry.trackSosTypeSelected(EmergencyType.EARTHQUAKE)
-                                createAndSaveEmergency(
+                                EmergencyActions.createAndSaveEmergency(
                                     context = context,
                                     emergencyType = EmergencyType.EARTHQUAKE,
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
                                     pendingEmergencyStore = pendingEmergencyStore,
-                                    onSuccess = {
+                                    onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.EARTHQUAKE)
                                         onDismiss()
                                     },
@@ -199,13 +195,13 @@ fun SosSelectTypeModal(
                             subtitle = "Report medical emergency or injury",
                             onClick = {
                                 SosTelemetry.trackSosTypeSelected(EmergencyType.MEDICAL)
-                                createAndSaveEmergency(
+                                EmergencyActions.createAndSaveEmergency(
                                     context = context,
                                     emergencyType = EmergencyType.MEDICAL,
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
                                     pendingEmergencyStore = pendingEmergencyStore,
-                                    onSuccess = {
+                                    onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.MEDICAL)
                                         onDismiss()
                                     },
@@ -308,192 +304,6 @@ private fun SosSelectTypeFooterNote(
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(16.dp)
-        )
-    }
-}
-
-/**
- * Maps location coordinates to building name for Universidad de los Andes.
- * Returns the closest building based on distance calculation.
- */
-internal fun getBuildingNameFromLocation(location: LatLng): String {
-    data class BuildingInfo(val name: String, val coordinates: LatLng)
-    
-    val buildings = listOf(
-        BuildingInfo("LL", LatLng(4.60148, -74.06502)),
-        BuildingInfo("ML", LatLng(4.60183, -74.06409)),
-        BuildingInfo("CP", LatLng(4.60161, -74.06342)),
-        BuildingInfo("SD", LatLng(4.60088, -74.06463)),
-        BuildingInfo("W", LatLng(4.60113, -74.06410)),
-        BuildingInfo("AU", LatLng(4.60206, -74.06545)),
-        BuildingInfo("C", LatLng(4.60167, -74.06555)),
-        BuildingInfo("L", LatLng(4.60117, -74.06510)),
-        BuildingInfo("R", LatLng(4.60101, -74.06461)),
-        BuildingInfo("CT", LatLng(4.60195, -74.06620)),
-        BuildingInfo("CA", LatLng(4.60156, -74.06586)),
-        BuildingInfo("CD", LatLng(4.60266, -74.06655)),
-        BuildingInfo("Main Entrance", LatLng(4.60234, -74.06591))
-    )
-    
-    // Find the closest building using distance calculation
-    var minDistance = Double.MAX_VALUE
-    var closestBuilding = "SD" // Default fallback
-    
-    for (building in buildings) {
-        val distance = calculateDistance(location, building.coordinates)
-        if (distance < minDistance) {
-            minDistance = distance
-            closestBuilding = building.name
-        }
-    }
-    
-    return closestBuilding
-}
-
-/**
- * Calculates the distance between two LatLng points using the Haversine formula.
- * Returns distance in meters.
- */
-internal fun calculateDistance(point1: LatLng, point2: LatLng): Double {
-    val earthRadius = 6371000.0 // Earth's radius in meters
-    
-    val lat1Rad = Math.toRadians(point1.latitude)
-    val lat2Rad = Math.toRadians(point2.latitude)
-    val deltaLatRad = Math.toRadians(point2.latitude - point1.latitude)
-    val deltaLngRad = Math.toRadians(point2.longitude - point1.longitude)
-    
-    val a = Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
-            Math.cos(lat1Rad) * Math.cos(lat2Rad) *
-            Math.sin(deltaLngRad / 2) * Math.sin(deltaLngRad / 2)
-    
-    val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    
-    return earthRadius * c
-}
-
-/**
- * Formats current date/time to match Firebase format: "2025-10-13T16:38:37.770010"
- */
-internal fun formatDateTime(): String {
-    val calendar = Calendar.getInstance()
-    val year = calendar.get(Calendar.YEAR)
-    val month = String.format("%02d", calendar.get(Calendar.MONTH) + 1)
-    val day = String.format("%02d", calendar.get(Calendar.DAY_OF_MONTH))
-    val hour = String.format("%02d", calendar.get(Calendar.HOUR_OF_DAY))
-    val minute = String.format("%02d", calendar.get(Calendar.MINUTE))
-    val second = String.format("%02d", calendar.get(Calendar.SECOND))
-    // Format milliseconds to 6 digits (microseconds)
-    val millisecond = String.format("%06d", calendar.get(Calendar.MILLISECOND) * 1000)
-    
-    return "$year-$month-${day}T$hour:$minute:$second.$millisecond"
-}
-
-/**
- * Creates and saves an emergency to Firebase when user selects an emergency type.
- */
-internal fun createAndSaveEmergency(
-    context: Context,
-    emergencyType: EmergencyType,
-    emergencyRepository: EmergencyRepository,
-    orquestador: Orquestador,
-    pendingEmergencyStore: PendingEmergencyStore,
-    onSuccess: () -> Unit,
-    onError: (String) -> Unit,
-    onOffline: () -> Unit
-) {
-    // Get user ID from profile
-    val userId = orquestador.getUserProfile().studentId.ifEmpty {
-        orquestador.firebaseUserProfile?.studentId ?: ""
-    }
-
-    // Map EmergencyType enum to string
-    val emerTypeString = when (emergencyType) {
-        EmergencyType.FIRE -> "Fire"
-        EmergencyType.EARTHQUAKE -> "Earthquake"
-        EmergencyType.MEDICAL -> "Medical"
-    }
-
-    // Get current location and building name
-    val fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
-    
-    try {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            val buildingName = if (location != null) {
-                getBuildingNameFromLocation(LatLng(location.latitude, location.longitude))
-            } else {
-                // Fallback to default if location not available
-                "SD"
-            }
-
-            // Create emergency object
-            val currentTime = System.currentTimeMillis()
-            val emergency = Emergency(
-                EmerResquestTime = 0,
-                assignedBrigadistId = "",
-                createdAt = currentTime,
-                date_time = formatDateTime(),
-                emerType = emerTypeString,
-                emergencyID = 0, // Will be generated by repository
-                location = buildingName,
-                secondsResponse = 5,
-                seconds_response = 5,
-                updatedAt = currentTime,
-                userId = userId
-            )
-
-            // Save to Firebase
-            emergencyRepository.createEmergency(
-                emergency = emergency,
-                onSuccess = onSuccess,
-                onError = onError,
-                onOffline = onOffline
-            )
-        }.addOnFailureListener {
-            // If location retrieval fails, use default building name
-            val currentTime = System.currentTimeMillis()
-            val emergency = Emergency(
-                EmerResquestTime = 0,
-                assignedBrigadistId = "",
-                createdAt = currentTime,
-                date_time = formatDateTime(),
-                emerType = emerTypeString,
-                emergencyID = 0,
-                location = "SD", // Default building name
-                secondsResponse = 5,
-                seconds_response = 5,
-                updatedAt = currentTime,
-                userId = userId
-            )
-
-            emergencyRepository.createEmergency(
-                emergency = emergency,
-                onSuccess = onSuccess,
-                onError = onError,
-                onOffline = onOffline
-            )
-        }
-    } catch (e: SecurityException) {
-        // Permission denied, use default location
-        val currentTime = System.currentTimeMillis()
-        val emergency = Emergency(
-            EmerResquestTime = 0,
-            assignedBrigadistId = "",
-            createdAt = currentTime,
-            date_time = formatDateTime(),
-            emerType = emerTypeString,
-            emergencyID = 0,
-            location = "SD",
-            secondsResponse = 5,
-            seconds_response = 5,
-            updatedAt = currentTime,
-            userId = userId
-        )
-
-        emergencyRepository.createEmergency(
-            emergency = emergency,
-            onSuccess = onSuccess,
-            onError = onError,
-            onOffline = onOffline
         )
     }
 }
