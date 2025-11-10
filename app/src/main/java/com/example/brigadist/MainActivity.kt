@@ -16,7 +16,11 @@ import com.auth0.android.provider.WebAuthProvider
 import com.auth0.android.result.Credentials
 import com.example.brigadist.auth.User
 import com.example.brigadist.auth.credentialsToUser
+import com.example.brigadist.auth.OfflineCredentialsManager
 import com.example.brigadist.ui.chat.ChatScreen
+import com.example.brigadist.ui.login.OfflineLoginScreen
+import com.example.brigadist.ui.login.SetOfflinePasswordScreen
+import com.example.brigadist.ui.login.ReLoginPromptDialog
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
@@ -45,16 +49,28 @@ import com.example.brigadist.ui.videos.model.Video
 import com.example.brigadist.ui.analytics.AnalyticsHomeScreen
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.auth0.android.authentication.AuthenticationAPIClient
 import com.auth0.android.authentication.storage.CredentialsManagerException
+import com.example.brigadist.ui.theme.GreenSecondary
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var account: Auth0
     private var user by mutableStateOf<User?>(null)
     private var isAnalyticsUser by mutableStateOf(false)
+    private var isOfflineMode by mutableStateOf(false)
+    private var isOnline by mutableStateOf(true)
+    private var showSetOfflinePassword by mutableStateOf(false)
+    private var showReLoginPrompt by mutableStateOf(false)
+    private var offlineLoginError by mutableStateOf<String?>(null)
     private lateinit var credentialsManager: CredentialsManager
+    private lateinit var offlineCredentialsManager: OfflineCredentialsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +83,10 @@ class MainActivity : ComponentActivity() {
             getString(R.string.auth0_domain)
         )
         credentialsManager = CredentialsManager(AuthenticationAPIClient(account), SharedPreferencesStorage(this))
+        offlineCredentialsManager = OfflineCredentialsManager(this)
+        
+        // Check initial connectivity
+        checkConnectivity()
 
         credentialsManager.getCredentials(object : Callback<Credentials, CredentialsManagerException> {
             override fun onSuccess(result: Credentials) {
@@ -74,7 +94,7 @@ class MainActivity : ComponentActivity() {
                 
                 // Check userType for existing credentials
                 user?.let { currentUser ->
-                    val orquestador = Orquestador(currentUser, this@MainActivity)
+                    val orquestador = Orquestador(currentUser, this@MainActivity, isOfflineMode = false)
                     // Wait a moment for Firebase data to load, then check userType
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                         val userType = orquestador.getUserType().lowercase()
@@ -89,14 +109,62 @@ class MainActivity : ComponentActivity() {
         })
 
         setContent {
-            if (user == null) {
-                LoginScreen(onLoginClick = { login() })
-            } else if (isAnalyticsUser) {
-                BrigadistTheme(darkTheme = false) {
-                    AnalyticsHomeScreen(onLogout = { logout() })
+            when {
+                // Show set offline password screen after first Auth0 login
+                showSetOfflinePassword && user != null -> {
+                    SetOfflinePasswordScreen(
+                        userEmail = user!!.email,
+                        onPasswordSet = { password ->
+                            offlineCredentialsManager.saveOfflineCredentials(user!!.email, password)
+                            showSetOfflinePassword = false
+                        },
+                        onSkip = {
+                            showSetOfflinePassword = false
+                        }
+                    )
                 }
-            } else {
-                BrigadistApp(Orquestador(user!!, this@MainActivity), onLogout = { logout() })
+                // No user logged in
+                user == null -> {
+                    if (isOnline) {
+                        // Online: Show normal Auth0 login
+                        LoginScreen(onLoginClick = { login() })
+                    } else {
+                        // Offline: Show offline login if credentials are set up
+                        if (offlineCredentialsManager.hasOfflineCredentials()) {
+                            OfflineLoginScreen(
+                                onOfflineLoginClick = { email, password ->
+                                    handleOfflineLogin(email, password)
+                                },
+                                errorMessage = offlineLoginError,
+                                storedEmail = offlineCredentialsManager.getStoredEmail()
+                            )
+                        } else {
+                            // No offline credentials set up
+                            NoOfflineAccessScreen()
+                        }
+                    }
+                }
+                // User logged in - show appropriate screen
+                isAnalyticsUser -> {
+                    BrigadistTheme(darkTheme = false) {
+                        AnalyticsHomeScreen(onLogout = { logout() })
+                    }
+                }
+                else -> {
+                    BrigadistApp(
+                        orquestador = Orquestador(user!!, this@MainActivity, isOfflineMode = isOfflineMode),
+                        onLogout = { logout() },
+                        isOfflineMode = isOfflineMode,
+                        showReLoginPrompt = showReLoginPrompt,
+                        onReLoginClick = {
+                            showReLoginPrompt = false
+                            logout()
+                        },
+                        onReLoginDismiss = {
+                            showReLoginPrompt = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -113,39 +181,160 @@ class MainActivity : ComponentActivity() {
                 override fun onSuccess(result: Credentials) {
                     credentialsManager.saveCredentials(result)
                     user = credentialsToUser(result)
+                    isOfflineMode = false
                     
                     // Check userType after successful login
                     user?.let { currentUser ->
-                        val orquestador = Orquestador(currentUser, this@MainActivity)
+                        val orquestador = Orquestador(currentUser, this@MainActivity, isOfflineMode = false)
                         // Wait a moment for Firebase data to load, then check userType
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                             val userType = orquestador.getUserType().lowercase()
                             isAnalyticsUser = userType == "analytics" || userType == "analitics"
+                            
+                            // Check if offline password is set up, if not, prompt to set it
+                            if (!offlineCredentialsManager.hasOfflineCredentials()) {
+                                showSetOfflinePassword = true
+                            }
                         }, 1000) // 1 second delay to allow Firebase to load
                     }
                 }
             })
     }
+    
+    private fun checkConnectivity() {
+        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
+        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        isOnline = hasInternet
+        
+        // Register network callback for continuous monitoring
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                val wasOffline = !isOnline
+                isOnline = true
+                
+                // If we just came back online and user is in offline mode, prompt to re-login
+                if (wasOffline && isOfflineMode && user != null) {
+                    showReLoginPrompt = true
+                }
+            }
+            
+            override fun onLost(network: Network) {
+                isOnline = false
+            }
+            
+            override fun onCapabilitiesChanged(
+                network: Network,
+                networkCapabilities: NetworkCapabilities
+            ) {
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                val wasOffline = !isOnline
+                isOnline = hasInternet
+                
+                // If we just came back online and user is in offline mode, prompt to re-login
+                if (wasOffline && isOnline && isOfflineMode && user != null) {
+                    showReLoginPrompt = true
+                }
+            }
+        }
+        
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+    }
+    
+    private fun handleOfflineLogin(email: String, password: String) {
+        if (offlineCredentialsManager.validateOfflineCredentials(email, password)) {
+            // Create a mock user for offline mode
+            user = User(
+                id = "offline_$email",
+                name = email.substringBefore("@"),
+                email = email,
+                picture = ""
+            )
+            isOfflineMode = true
+            offlineLoginError = null
+        } else {
+            offlineLoginError = "Invalid credentials"
+        }
+    }
 
     private fun logout() {
-        WebAuthProvider.logout(account)
-            .withScheme("com.example.brigadist")
-            .start(this, object : Callback<Void?, AuthenticationException> {
-                override fun onFailure(error: AuthenticationException) {
-                    // Handle error
-                }
+        if (isOfflineMode) {
+            // Just clear user state for offline mode
+            user = null
+            isOfflineMode = false
+            isAnalyticsUser = false
+        } else {
+            // Normal Auth0 logout
+            WebAuthProvider.logout(account)
+                .withScheme("com.example.brigadist")
+                .start(this, object : Callback<Void?, AuthenticationException> {
+                    override fun onFailure(error: AuthenticationException) {
+                        // Handle error
+                    }
 
-                override fun onSuccess(result: Void?) {
-                    credentialsManager.clearCredentials()
-                    user = null
-                    isAnalyticsUser = false
-                }
-            })
+                    override fun onSuccess(result: Void?) {
+                        credentialsManager.clearCredentials()
+                        user = null
+                        isAnalyticsUser = false
+                        isOfflineMode = false
+                    }
+                })
+        }
     }
 }
 
 @Composable
-fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
+fun NoOfflineAccessScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(GreenSecondary)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.CloudOff,
+            contentDescription = "No Connection",
+            modifier = Modifier.size(100.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            text = "No Internet Connection",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "You need to set up offline access before you can use the app without an internet connection.\n\nPlease connect to the internet and log in to set up offline access.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+fun BrigadistApp(
+    orquestador: Orquestador,
+    onLogout: () -> Unit,
+    isOfflineMode: Boolean = false,
+    showReLoginPrompt: Boolean = false,
+    onReLoginClick: () -> Unit = {},
+    onReLoginDismiss: () -> Unit = {}
+) {
     // Collect theme state from Orchestrator's ThemeControlle
     val themeState by orquestador.themeController.themeState.collectAsState()
     val context = LocalContext.current
@@ -343,6 +532,14 @@ fun BrigadistApp(orquestador: Orquestador, onLogout: () -> Unit) {
             SosContactBrigadeScreen(
                 orquestador = orquestador,
                 onBack = { showContactBrigadeScreen = false }
+            )
+        }
+        
+        // Re-login prompt when connection is restored
+        if (showReLoginPrompt) {
+            ReLoginPromptDialog(
+                onLoginClick = onReLoginClick,
+                onDismiss = onReLoginDismiss
             )
         }
     }
