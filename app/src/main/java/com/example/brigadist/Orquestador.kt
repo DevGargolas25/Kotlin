@@ -25,11 +25,16 @@ import com.google.firebase.ktx.Firebase
 
 class Orquestador(
     private val user: User,
-    private val context: Context
+    private val context: Context,
+    private val isOfflineMode: Boolean = false
 ) {
     private val defaultLocation = LatLng(4.6018, -74.0661)
     private val database: FirebaseDatabase = Firebase.database
-    private val userRef = database.getReference("User").child(user.id.substringAfter("|"))
+    private val userRef: com.google.firebase.database.DatabaseReference? = if (!isOfflineMode) {
+        database.getReference("User").child(user.id.substringAfter("|"))
+    } else {
+        null
+    }
 
     var firebaseUserProfile by mutableStateOf<FirebaseUserProfile?>(null)
         private set
@@ -37,11 +42,13 @@ class Orquestador(
     val themeController = ThemeController(context)
 
     init {
-        fetchUserProfile()
+        if (!isOfflineMode) {
+            fetchUserProfile()
+        }
     }
 
     private fun fetchUserProfile() {
-        userRef.addValueEventListener(object : ValueEventListener {
+        userRef?.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 firebaseUserProfile = snapshot.getValue(FirebaseUserProfile::class.java)
             }
@@ -53,7 +60,9 @@ class Orquestador(
     }
 
     fun updateUserProfile(profile: FirebaseUserProfile) {
-        userRef.setValue(profile)
+        if (!isOfflineMode) {
+            userRef?.setValue(profile)
+        }
     }
 
     
