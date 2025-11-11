@@ -1,11 +1,9 @@
 package com.example.brigadist.di
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import coil.intercept.Interceptor
-import coil.request.ErrorResult
 import coil.request.ImageResult
 import coil.request.SuccessResult
 import kotlin.math.roundToInt
@@ -16,11 +14,13 @@ import kotlin.math.roundToInt
  * 
  * How it works:
  * 1. Intercepts successful image loads
- * 2. Extracts the bitmap from the result
- * 3. Calculates optimal target size maintaining aspect ratio
- * 4. Downsamples using Android's createScaledBitmap (bilinear filtering)
- * 5. Recycles the original bitmap to free memory
- * 6. Returns the downsampled version to be cached
+ * 2. Extracts the bitmap from the result (BitmapDrawable only)
+ * 3. Validates bitmap dimensions
+ * 4. Calculates optimal target size maintaining aspect ratio
+ * 5. Downsamples using Android's createScaledBitmap (bilinear filtering)
+ * 6. Returns the downsampled version to be cached by Coil
+ * 
+ * Note: Original bitmap is NOT recycled - Coil manages bitmap lifecycle automatically
  */
 class ImageDownsamplingInterceptor(
     private val maxWidth: Int = 800,  // Maximum width in pixels
@@ -45,17 +45,17 @@ class ImageDownsamplingInterceptor(
             val originalBitmap = when (val drawable = result.drawable) {
                 is BitmapDrawable -> drawable.bitmap
                 else -> {
-                    // Convert other drawable types to bitmap
-                    val bitmap = Bitmap.createBitmap(
-                        drawable.intrinsicWidth.coerceAtLeast(1),
-                        drawable.intrinsicHeight.coerceAtLeast(1),
-                        Bitmap.Config.ARGB_8888
-                    )
-                    val canvas = Canvas(bitmap)
-                    drawable.setBounds(0, 0, canvas.width, canvas.height)
-                    drawable.draw(canvas)
-                    bitmap
+                    // For non-BitmapDrawable, just return the original result
+                    // to avoid creating large temporary bitmaps that can cause memory issues
+                    Log.d(TAG, "⚠️ Non-BitmapDrawable detected, skipping downsampling")
+                    return result
                 }
+            }
+            
+            // Skip if bitmap is invalid
+            if (originalBitmap.width <= 0 || originalBitmap.height <= 0) {
+                Log.d(TAG, "⚠️ Invalid bitmap dimensions, skipping")
+                return result
             }
             
             // Calculate target dimensions
@@ -75,12 +75,17 @@ class ImageDownsamplingInterceptor(
             }
             
             // Perform manual downsampling using Android's native API
-            val downsampledBitmap = Bitmap.createScaledBitmap(
-                originalBitmap,
-                targetSize.width,
-                targetSize.height,
-                true  // filter=true uses bilinear filtering for better quality
-            )
+            val downsampledBitmap = try {
+                Bitmap.createScaledBitmap(
+                    originalBitmap,
+                    targetSize.width,
+                    targetSize.height,
+                    true  // filter=true uses bilinear filtering for better quality
+                )
+            } catch (e: OutOfMemoryError) {
+                Log.e(TAG, "❌ OutOfMemoryError during downsampling, returning original", e)
+                return result
+            }
             
             Log.d(TAG, "✂️ Downsampled: ${originalBitmap.width}x${originalBitmap.height} → ${downsampledBitmap.width}x${downsampledBitmap.height}")
             
@@ -90,10 +95,9 @@ class ImageDownsamplingInterceptor(
             val savedPercent = ((originalBytes - downsampledBytes).toFloat() / originalBytes * 100).roundToInt()
             Log.d(TAG, "💾 Memory saved: ${savedPercent}% (${(originalBytes - downsampledBytes) / 1024}KB)")
             
-            // Recycle original bitmap to free memory immediately
-            if (downsampledBitmap !== originalBitmap && result.drawable is BitmapDrawable) {
-                originalBitmap.recycle()
-            }
+            // NOTE: Do NOT recycle the original bitmap manually
+            // Coil manages bitmap lifecycle automatically and recycling can cause crashes
+            // when the same bitmap is accessed again during scrolling
             
             // Create new drawable with downsampled bitmap
             val newDrawable = BitmapDrawable(
