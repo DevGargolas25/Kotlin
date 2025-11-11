@@ -47,7 +47,7 @@ fun SosOfflineMessageModal(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
             ) {
-                // Orange/Yellow header band with close button
+                // Red header band with close button
                 Box(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -133,12 +133,7 @@ private fun SosOfflineMessageHeader(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "Your alert will be sent when connection is restored",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onError.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center
-        )
+
     }
 }
 
@@ -154,7 +149,7 @@ private fun SosOfflineMessageContent(
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
-            text = "Your emergency alert has been saved locally and will be sent automatically when internet connection is restored.",
+            text = "Your alert will be sent when connection is restored",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             textAlign = TextAlign.Center,
