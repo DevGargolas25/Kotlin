@@ -56,13 +56,13 @@ fun OfflineLoginScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
+                containerColor = MaterialTheme.colorScheme.error
             )
         ) {
             Text(
                 text = "Offline Mode",
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = MaterialTheme.colorScheme.onError,
                 modifier = Modifier.padding(12.dp)
             )
         }

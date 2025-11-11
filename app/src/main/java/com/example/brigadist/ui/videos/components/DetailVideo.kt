@@ -166,7 +166,7 @@ fun DetailVideo(
                         .fillMaxWidth()
                         .padding(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
+                        containerColor = MaterialTheme.colorScheme.error
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
@@ -174,7 +174,7 @@ fun DetailVideo(
                         text = "No internet. Please connect to load the video",
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = MaterialTheme.colorScheme.onError,
                         textAlign = TextAlign.Center
                     )
                 }

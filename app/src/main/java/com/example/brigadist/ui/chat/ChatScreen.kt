@@ -257,7 +257,7 @@ fun ChatScreen() {
         // Offline banner with actions
         if (showOfflineBanner) {
             Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
+                color = MaterialTheme.colorScheme.error,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -271,7 +271,7 @@ fun ChatScreen() {
                     Text(
                         text = "No internet connection.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = MaterialTheme.colorScheme.onError,
                         modifier = Modifier.weight(1f)
                     )
                     
@@ -437,14 +437,14 @@ private fun MessageBubble(message: UiMessage, vote: Boolean?, onVote: (Boolean) 
                     if (isPending) {
                         Spacer(Modifier.width(4.dp))
                         Surface(
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
                                 text = "Pending",
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.onError
                             )
                         }
                     }

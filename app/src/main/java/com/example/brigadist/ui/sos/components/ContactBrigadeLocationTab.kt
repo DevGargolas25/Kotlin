@@ -218,7 +218,7 @@ fun ContactBrigadeLocationTab(
                     if (showDeniedForeverMessage) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                containerColor = MaterialTheme.colorScheme.error
                             )
                         ) {
                             Column(
@@ -227,7 +227,7 @@ fun ContactBrigadeLocationTab(
                                 Text(
                                     text = "Location access denied permanently",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                    color = MaterialTheme.colorScheme.onError
                                 )
                                 TextButton(
                                     onClick = {
