@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    userName: String = "",
     onTickNotification: () -> Unit = {},
     onShowAllNotifications: () -> Unit = {},
     onOpenProfileSettings: () -> Unit,
@@ -40,7 +41,8 @@ fun HomeScreen(
         )
 
         Spacer(Modifier.height(8.dp))
-        Text("Hi John!", style = MaterialTheme.typography.headlineSmall,
+        val greeting = if (userName.isNotBlank()) "Hi $userName!" else "Hi!"
+        Text(greeting, style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 16.dp))
 
         Spacer(Modifier.height(16.dp))

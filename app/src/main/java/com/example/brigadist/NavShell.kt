@@ -134,6 +134,7 @@ fun NavShell(
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
+                                userName = orquestador.getUserProfile().fullName,
                                 onOpenProfile = {
                                     showProfile = true
                                     orchestrator.trackScreenView("Profile")

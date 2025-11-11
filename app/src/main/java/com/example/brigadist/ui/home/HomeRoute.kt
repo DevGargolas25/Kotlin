@@ -16,6 +16,7 @@ import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun HomeRoute(
+    userName: String = "",
     onOpenVideo: (Video) -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onNavigateToVideos: () -> Unit = {},
@@ -41,6 +42,7 @@ fun HomeRoute(
 
     HomeScreen(
         state = homeUiState,
+        userName = userName,
         onOpenProfileSettings = onOpenProfile,
         onVideoClick = onVideoClickFromCarousel,
         onNavigateToVideos = onNavigateToVideos,
