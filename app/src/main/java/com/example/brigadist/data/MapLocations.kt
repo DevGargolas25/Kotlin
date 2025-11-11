@@ -29,9 +29,21 @@ object MapLocations {
             description = "Meeting point"
         ),
         MapLocation(
+            name = "La Pola",
+            latitude = 4.60167,
+            longitude = -74.067667,
+            description = "Meeting point"
+        ),
+        MapLocation(
             name = "SD Cerca",
             latitude = 4.603966,
             longitude = -74.065778,
+            description = "Meeting point"
+        ),
+        MapLocation(
+            name = "Bobo",
+            latitude = 4.601349,
+            longitude = -74.065678,
             description = "Meeting point"
         )
     )

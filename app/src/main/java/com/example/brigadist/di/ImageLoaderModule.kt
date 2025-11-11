@@ -27,6 +27,14 @@ object ImageLoaderModule {
                     .maxSizePercent(0.02) // Use 2% of the available disk space for disk cache
                     .build()
             }
+            .components {
+                // Add custom downsampling interceptor to reduce memory usage
+                // Images will be downsampled to max 800x600px before caching
+                add(ImageDownsamplingInterceptor(
+                    maxWidth = 800,   // Max width in pixels
+                    maxHeight = 600   // Max height in pixels
+                ))
+            }
             .build()
     }
 }

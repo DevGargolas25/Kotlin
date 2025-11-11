@@ -47,7 +47,7 @@ fun SosOfflineMessageModal(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
             ) {
-                // Orange/Yellow header band with close button
+                // Red header band with close button
                 Box(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -65,7 +65,7 @@ fun SosOfflineMessageModal(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
+                            tint = MaterialTheme.colorScheme.onError
                         )
                     }
                 }
@@ -99,7 +99,7 @@ private fun SosOfflineMessageHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.errorContainer)
+            .background(MaterialTheme.colorScheme.error)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -108,7 +108,7 @@ private fun SosOfflineMessageHeader(
             modifier = Modifier
                 .size(64.dp)
                 .background(
-                    MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.15f),
+                    MaterialTheme.colorScheme.onError.copy(alpha = 0.15f),
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -116,7 +116,7 @@ private fun SosOfflineMessageHeader(
             Icon(
                 imageVector = Icons.Default.WifiOff,
                 contentDescription = "No Internet",
-                tint = MaterialTheme.colorScheme.onErrorContainer,
+                tint = MaterialTheme.colorScheme.onError,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -127,18 +127,13 @@ private fun SosOfflineMessageHeader(
             text = "No Internet Connection",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onErrorContainer,
+            color = MaterialTheme.colorScheme.onError,
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "Your alert will be sent when connection is restored",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center
-        )
+
     }
 }
 
@@ -154,7 +149,7 @@ private fun SosOfflineMessageContent(
         shape = RoundedCornerShape(12.dp)
     ) {
         Text(
-            text = "Your emergency alert has been saved locally and will be sent automatically when internet connection is restored.",
+            text = "Your alert will be sent when connection is restored",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             textAlign = TextAlign.Center,

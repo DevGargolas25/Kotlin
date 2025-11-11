@@ -450,6 +450,7 @@ fun BrigadistApp(
                     Destination.Home -> {
                         if (!showProfile) {
                             HomeRoute(
+                                userName = orquestador.getUserProfile().fullName,
                                 onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos },
                                 onOpenVideo = { video -> selectedVideo = video },

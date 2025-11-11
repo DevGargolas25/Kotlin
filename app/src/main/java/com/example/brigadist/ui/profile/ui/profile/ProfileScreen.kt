@@ -205,13 +205,13 @@ fun ProfileScreen(
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
+                            containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
                         Text(
                             text = error,
                             modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onError
                         )
                     }
                 }

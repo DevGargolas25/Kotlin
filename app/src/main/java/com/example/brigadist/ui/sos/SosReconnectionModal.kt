@@ -67,7 +67,7 @@ fun SosReconnectionModal(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = MaterialTheme.colorScheme.onSecondary
                         )
                     }
                 }
@@ -129,7 +129,7 @@ private fun SosReconnectionHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
+            .background(MaterialTheme.colorScheme.secondary)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -138,7 +138,7 @@ private fun SosReconnectionHeader(
             modifier = Modifier
                 .size(64.dp)
                 .background(
-                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                    MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.2f),
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -146,7 +146,7 @@ private fun SosReconnectionHeader(
             Icon(
                 imageVector = Icons.Default.Wifi,
                 contentDescription = "Connection Restored",
-                tint = MaterialTheme.colorScheme.onPrimary,
+                tint = MaterialTheme.colorScheme.onSecondary,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -157,7 +157,7 @@ private fun SosReconnectionHeader(
             text = "Connection Restored",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = MaterialTheme.colorScheme.onSecondary,
             textAlign = TextAlign.Center
         )
 
@@ -166,7 +166,7 @@ private fun SosReconnectionHeader(
         Text(
             text = "Internet connection has been reestablished",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.9f),
             textAlign = TextAlign.Center
         )
     }
