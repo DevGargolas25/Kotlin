@@ -1,5 +1,13 @@
 package com.example.brigadist.ui.profile.ui.profile
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,18 +16,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -83,6 +94,28 @@ fun ProfileScreen(
     
     // Get display data with fallback support
     val displayData = state.getDisplayData(orquestador)
+    
+    // Offline alert state
+    val context = LocalContext.current
+    var showOfflineAlert by remember { mutableStateOf(false) }
+    
+    // Connectivity check function
+    fun isOnline(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+    
+    // Handle logout with connectivity check
+    fun handleLogout() {
+        if (!isOnline()) {
+            showOfflineAlert = true
+        } else {
+            onLogout()
+        }
+    }
     
     // Create ProfilePresenter and ProfileView implementation with state updater
     val updateState: (ProfileScreenState.() -> ProfileScreenState) -> Unit = remember {
@@ -176,9 +209,10 @@ fun ProfileScreen(
     } else {
         val scrollState = rememberScrollState()
 
-        Scaffold(
-            modifier = modifier
-        ) { innerPadding ->
+        Box(modifier = modifier.fillMaxSize()) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize()
+            ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -278,8 +312,59 @@ fun ProfileScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(onClick = onLogout) {
+                Button(onClick = ::handleLogout) {
                     Text("Log Out")
+                }
+            }
+            }
+            
+            // Non-intrusive offline alert at the top
+            AnimatedVisibility(
+                visible = showOfflineAlert,
+                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WifiOff,
+                            contentDescription = "No Internet",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Please connect to the internet to successfully log out",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { showOfflineAlert = false },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
             }
         }
