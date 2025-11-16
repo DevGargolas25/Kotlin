@@ -90,7 +90,7 @@ fun formatRelativeTime(timestamp: Long): String {
     val minutes = diff / (1000 * 60)
     val hours = diff / (1000 * 60 * 60)
     val days = diff / (1000 * 60 * 60 * 24)
-    
+
     return when {
         minutes < 1 -> "Updated just now"
         minutes < 60 -> "Updated $minutes min ago"
