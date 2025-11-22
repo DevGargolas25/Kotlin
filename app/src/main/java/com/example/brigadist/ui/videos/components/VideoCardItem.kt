@@ -16,10 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.example.brigadist.di.ImageLoaderModule
+import com.example.brigadist.ui.components.CachedAsyncImage
 import com.example.brigadist.ui.videos.model.Video
 
 @Composable
@@ -35,12 +33,10 @@ fun VideoCardItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier.fillMaxWidth()
     ) {
-        val context = LocalContext.current
         Column {
-            AsyncImage(
-                model = video.thumbnail,
+            CachedAsyncImage(
+                imageUrl = video.thumbnail,
                 contentDescription = "Video thumbnail for ${video.title}",
-                imageLoader = ImageLoaderModule.provideImageLoader(context),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()

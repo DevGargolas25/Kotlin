@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import com.example.brigadist.data.EmergencyRepository
-import com.example.brigadist.data.PendingEmergencyStore
 import com.example.brigadist.ui.sos.components.EmergencyType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -60,7 +59,6 @@ fun SosContactBrigadeScreen(
     var lastEmergencyKey by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
-    val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
 
     // Sender lambda - tracks the push key so we can update ChatUsed later
     val sendMedicalEmergency: () -> Unit = {
@@ -69,7 +67,6 @@ fun SosContactBrigadeScreen(
             emergencyType = EmergencyType.MEDICAL,
             emergencyRepository = emergencyRepository,
             orquestador = orquestador,
-            pendingEmergencyStore = pendingEmergencyStore,
             chatUsed = ChatUsed,
             onSuccess = { key -> lastEmergencyKey = key },
             onError = { },

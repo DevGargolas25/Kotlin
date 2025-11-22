@@ -25,7 +25,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
-import com.example.brigadist.data.PendingEmergencyStore
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.sos.components.SosTypeRow
 import com.example.brigadist.ui.sos.model.Emergency
@@ -42,7 +41,6 @@ fun SosSelectTypeModal(
 ) {
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
-    val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
     var showOfflineMessage by remember { mutableStateOf<Boolean>(false) }
     // Track modal opened
     LaunchedEffect(Unit) {
@@ -138,7 +136,6 @@ fun SosSelectTypeModal(
                                     emergencyType = EmergencyType.FIRE,
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
-                                    pendingEmergencyStore = pendingEmergencyStore,
                                     onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.FIRE)
                                         onDismiss()
@@ -150,7 +147,6 @@ fun SosSelectTypeModal(
                                     },
                                     onOffline = {
                                         showOfflineMessage = true
-                                        pendingEmergencyStore.setPendingEmergency(true)
                                     }
                                 )
                             },
@@ -169,7 +165,6 @@ fun SosSelectTypeModal(
                                     emergencyType = EmergencyType.EARTHQUAKE,
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
-                                    pendingEmergencyStore = pendingEmergencyStore,
                                     onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.EARTHQUAKE)
                                         onDismiss()
@@ -181,7 +176,6 @@ fun SosSelectTypeModal(
                                     },
                                     onOffline = {
                                         showOfflineMessage = true
-                                        pendingEmergencyStore.setPendingEmergency(true)
                                     }
                                 )
                             },
@@ -200,7 +194,6 @@ fun SosSelectTypeModal(
                                     emergencyType = EmergencyType.MEDICAL,
                                     emergencyRepository = emergencyRepository,
                                     orquestador = orquestador,
-                                    pendingEmergencyStore = pendingEmergencyStore,
                                     onSuccess = { _ ->
                                         onTypeSelected(EmergencyType.MEDICAL)
                                         onDismiss()
@@ -212,7 +205,6 @@ fun SosSelectTypeModal(
                                     },
                                     onOffline = {
                                         showOfflineMessage = true
-                                        pendingEmergencyStore.setPendingEmergency(true)
                                     }
                                 )
                             },

@@ -172,7 +172,8 @@ fun ProfileScreen(
         ProfilePresenter(
             view = profileView,
             repository = FirebaseProfileRepository(),
-            coroutineScope = CoroutineScope(Dispatchers.Default)
+            coroutineScope = CoroutineScope(Dispatchers.Default),
+            context = context
         )
     }
     
