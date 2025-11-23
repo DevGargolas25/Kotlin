@@ -13,6 +13,7 @@ import com.example.brigadist.Orquestador
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.components.HomeNotificationBar
+import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 
 @Composable
 fun BrigadistScreen(
@@ -30,7 +31,7 @@ fun BrigadistScreen(
                 selected = selected,
                 onSelect = { dest ->
                     selected = dest
-                    showProfile = false
+                    showProfile = false // Close profile when navigating to any destination
                     // Show placeholder message based on destination (except Chat which has its own screen)
                     showPlaceholderMessage = when (dest) {
                         Destination.Home -> null
@@ -51,59 +52,64 @@ fun BrigadistScreen(
                 .padding(innerPadding),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                // Header with HomeScreen text and profile icon
-                HomeNotificationBar(
-                    text = "HomeScreen",
-                    onBellClick = { /* Notifications placeholder */ },
-                    onMenuClick = { showProfile = true }
-                )
-                
-                Spacer(Modifier.height(8.dp))
-                
-                // Body content
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    when {
-                        showProfile -> {
-                            // Profile placeholder
-                            Text(
-                                text = "Here will be the profile",
-                                style = MaterialTheme.typography.headlineMedium,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
+            when (selected) {
+                Destination.Home -> {
+                    if (!showProfile) {
+                        // Home screen with header
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            // Header with HomeScreen text and profile icon - only on Home screen
+                            HomeNotificationBar(
+                                text = "HomeScreen",
+                                onBellClick = { /* Notifications placeholder */ },
+                                onMenuClick = { showProfile = true }
                             )
-                        }
-                        selected == Destination.Chat -> {
-                            // Chat screen
-                            BrigadistChatScreen()
-                        }
-                        showPlaceholderMessage != null -> {
-                            // Show placeholder message for selected destination
-                            Text(
-                                text = showPlaceholderMessage!!,
-                                style = MaterialTheme.typography.headlineMedium,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                        selected == Destination.Home -> {
+                            Spacer(Modifier.height(8.dp))
+                            
                             // Home content
-                            Text(
-                                text = "This will be the home",
-                                style = MaterialTheme.typography.headlineMedium,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "This will be the home",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
                         }
+                    } else {
+                        // Profile screen - reuse existing ProfileScreen component (has its own Scaffold)
+                        ProfileScreen(
+                            orquestador = orquestador,
+                            onLogout = onLogout
+                        )
+                    }
+                }
+                Destination.Chat -> {
+                    // Chat screen
+                    BrigadistChatScreen()
+                }
+                Destination.Emergency,
+                Destination.Map,
+                Destination.Videos -> {
+                    // Show placeholder message for selected destination
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = showPlaceholderMessage ?: "Here will be the ${selected.name.lowercase()}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
                 }
             }
