@@ -14,6 +14,7 @@ data class Emergency(
     var location: String = "",
     var latitude: Double = 0.0,
     var longitude: Double = 0.0,
+    var status: String = "Unattended",
     var secondsResponse: Int = 5,
     var seconds_response: Int = 5,
     var updatedAt: Long = 0,
