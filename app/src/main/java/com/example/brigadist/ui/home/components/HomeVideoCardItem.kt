@@ -15,18 +15,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.example.brigadist.di.ImageLoaderModule
+import com.example.brigadist.ui.components.CachedAsyncImage
 import com.example.brigadist.ui.videos.model.Video
 
 @Composable
 fun HomeVideoCardItem(video: Video,
                       onClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     Surface(
         modifier = Modifier
             .width(240.dp)
@@ -38,11 +35,10 @@ fun HomeVideoCardItem(video: Video,
     ) {
         Column(Modifier.padding(14.dp)) {
 
-            AsyncImage(
-                model = video.thumbnail,
+            CachedAsyncImage(
+                imageUrl = video.thumbnail,
                 contentDescription = "Video thumbnail for ${video.title}",
                 contentScale = ContentScale.Crop,
-                imageLoader = ImageLoaderModule.provideImageLoader(context),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)

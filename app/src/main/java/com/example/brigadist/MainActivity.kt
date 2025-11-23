@@ -33,7 +33,6 @@ import com.example.brigadist.ui.sos.SosConfirmationModal
 import com.example.brigadist.ui.sos.SosReconnectionModal
 import com.example.brigadist.ui.sos.SosContactBrigadeScreen
 import com.example.brigadist.ui.sos.components.EmergencyType
-import com.example.brigadist.data.PendingEmergencyStore
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -47,6 +46,7 @@ import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
 import com.example.brigadist.ui.analytics.AnalyticsHomeScreen
+import com.example.brigadist.data.EmergencyRepository
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
@@ -343,7 +343,8 @@ fun BrigadistApp(
     var isOffline by rememberSaveable { mutableStateOf(false) }
     var showReconnectionModal by rememberSaveable { mutableStateOf(false) }
     var wasOffline by rememberSaveable { mutableStateOf(false) }
-    val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
+    var isSyncing by rememberSaveable { mutableStateOf(false) }
+    val emergencyRepository = remember { EmergencyRepository(context) }
 
     // Connectivity monitoring
     LaunchedEffect(Unit) {
@@ -353,7 +354,7 @@ fun BrigadistApp(
             override fun onAvailable(network: Network) {
                 isOffline = false
                 // Check if we just came back online and have a pending emergency
-                if (wasOffline && pendingEmergencyStore.hasPendingEmergency()) {
+                if (wasOffline && emergencyRepository.hasPendingEmergencies()) {
                     showReconnectionModal = true
                 }
                 wasOffline = false
@@ -374,7 +375,7 @@ fun BrigadistApp(
                 isOffline = !hasInternet
                 
                 // If we just came back online and have pending emergency
-                if (wasOfflineBefore && !isOffline && pendingEmergencyStore.hasPendingEmergency()) {
+                if (wasOfflineBefore && !isOffline && emergencyRepository.hasPendingEmergencies()) {
                     showReconnectionModal = true
                     wasOffline = false
                 } else if (isOffline) {
@@ -515,14 +516,16 @@ fun BrigadistApp(
         if (showReconnectionModal) {
             SosReconnectionModal(
                 onSend = {
-                    // Firebase persistence will automatically sync the queued emergency
-                    // Clear the pending flag since we're confirming the send
-                    pendingEmergencyStore.clearPendingEmergency()
-                    showReconnectionModal = false
+                    // Sync pending emergencies from cache
+                    isSyncing = true
+                    emergencyRepository.syncPendingEmergencies { successCount, failureCount, totalCount ->
+                        isSyncing = false
+                        showReconnectionModal = false
+                        // Optionally show a toast or snackbar with sync results
+                    }
                 },
                 onDismiss = {
-                    // User chose not to send, clear the pending flag
-                    pendingEmergencyStore.clearPendingEmergency()
+                    // User chose not to send, keep emergencies in cache for later
                     showReconnectionModal = false
                 }
             )

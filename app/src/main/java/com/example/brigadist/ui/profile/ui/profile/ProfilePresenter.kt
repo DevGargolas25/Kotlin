@@ -1,5 +1,7 @@
 package com.example.brigadist.ui.profile
 
+import android.content.Context
+import com.example.brigadist.cache.ImageCacheManager
 import com.example.brigadist.data.repository.ProfileRepository
 import com.example.brigadist.ui.profile.model.Allergies
 import com.example.brigadist.ui.profile.model.EmergencyContact
@@ -18,7 +20,8 @@ import kotlin.coroutines.resume
 class ProfilePresenter(
     private val view: ProfileView,
     private val repository: ProfileRepository,
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+    private val context: Context? = null
 ) {
 
     fun loadProfile(email: String) {
@@ -120,6 +123,14 @@ class ProfilePresenter(
                 withContext(Dispatchers.Main) {
                     view.hideLoading()
                     if (success) {
+                        // Invalidate image cache if profile image URL changed
+                        // This ensures updated profile images are reloaded
+                        context?.let {
+                            // If profile has imageUrl field, invalidate it
+                            // For now, we'll invalidate all profile-related images
+                            // You can add specific image URL invalidation if needed
+                            ImageCacheManager.getInstance(it).clearMemoryCache()
+                        }
                         view.showSuccess("Perfil actualizado correctamente.")
                     } else {
                         view.showError("Error al actualizar el perfil.")

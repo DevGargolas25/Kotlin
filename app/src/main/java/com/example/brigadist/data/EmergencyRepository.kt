@@ -3,11 +3,16 @@ package com.example.brigadist.data
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.example.brigadist.cache.EmergencyCacheManager
 import com.example.brigadist.ui.sos.model.Emergency
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class EmergencyRepository(private val context: Context? = null) {
     private val database = FirebaseDatabase.getInstance().getReference("Emergency")
+    private val emergencyCache = context?.let { EmergencyCacheManager.getInstance(it) }
 
     /**
      * Checks if device is currently online.
@@ -25,8 +30,7 @@ class EmergencyRepository(private val context: Context? = null) {
 
     /**
      * Creates a new emergency record in Firebase.
-     * With Firebase offline persistence enabled, writes will be queued if offline
-     * and automatically synced when connection is restored.
+     * Uses custom EmergencyCacheManager for offline storage and sync.
      * 
      * @param emergency The emergency object to create (emergencyID will be generated if not set)
      * @param onSuccess Callback invoked when emergency write is queued/sent, with the push key
@@ -39,27 +43,6 @@ class EmergencyRepository(private val context: Context? = null) {
         onError: (String) -> Unit,
         onOffline: (() -> Unit)? = null
     ) {
-        // Check if offline
-        if (!isOnline()) {
-            // Firebase persistence will queue this write automatically
-            // Generate unique emergencyID if not already set
-            val emergencyWithId = if (emergency.emergencyID == 0L) {
-                val pushKey = database.push().key
-                val generatedId = pushKey?.takeLast(8)?.toLongOrNull() ?: System.currentTimeMillis() % 100000000
-                emergency.copy(emergencyID = generatedId)
-            } else {
-                emergency
-            }
-
-            // Write to Firebase (will be queued by persistence)
-            val pushRef = database.push()
-            val pushKey = pushRef.key ?: ""
-            pushRef.setValue(emergencyWithId)
-            // Only call onOffline, not onSuccess - this prevents the confirmation modal from showing
-            onOffline?.invoke()
-            return
-        }
-
         // Generate unique emergencyID if not already set
         val emergencyWithId = if (emergency.emergencyID == 0L) {
             val pushKey = database.push().key
@@ -69,7 +52,22 @@ class EmergencyRepository(private val context: Context? = null) {
             emergency
         }
 
-        // Write emergency to Firebase
+        // Check if offline
+        if (!isOnline()) {
+            // Cache the emergency for later sync
+            if (emergencyCache != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    emergencyCache.cacheEmergency(emergencyWithId)
+                }
+            }
+            // Also try Firebase persistence as backup
+            val pushRef = database.push()
+            pushRef.setValue(emergencyWithId)
+            onOffline?.invoke()
+            return
+        }
+
+        // Try to write directly to Firebase
         val pushRef = database.push()
         val pushKey = pushRef.key ?: ""
         pushRef.setValue(emergencyWithId)
@@ -77,8 +75,38 @@ class EmergencyRepository(private val context: Context? = null) {
                 onSuccess(pushKey)
             }
             .addOnFailureListener { exception ->
+                // If Firebase write fails, cache it for retry
+                if (emergencyCache != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        emergencyCache.cacheEmergency(emergencyWithId)
+                    }
+                }
                 onError(exception.message ?: "Error al crear la emergencia")
             }
+    }
+    
+    /**
+     * Sync all pending emergencies from cache
+     */
+    fun syncPendingEmergencies(
+        onComplete: (successCount: Int, failureCount: Int, totalCount: Int) -> Unit
+    ) {
+        if (emergencyCache == null) {
+            onComplete(0, 0, 0)
+            return
+        }
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = emergencyCache.syncPendingEmergencies()
+            onComplete(result.successCount, result.failureCount, result.totalCount)
+        }
+    }
+    
+    /**
+     * Check if there are pending emergencies
+     */
+    fun hasPendingEmergencies(): Boolean {
+        return emergencyCache?.hasPendingEmergencies() ?: false
     }
 
     /**

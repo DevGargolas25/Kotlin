@@ -1,40 +1,19 @@
 package com.example.brigadist.di
 
 import android.content.Context
-import coil.ImageLoader
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
+import com.example.brigadist.cache.ImageCacheManager
 
+/**
+ * ImageLoaderModule - Provides access to ImageCacheManager
+ * Replaces Coil's ImageLoader
+ */
 object ImageLoaderModule {
-    private var imageLoader: ImageLoader? = null
-
-    fun provideImageLoader(context: Context): ImageLoader {
-        return imageLoader ?: synchronized(this) {
-            imageLoader ?: buildImageLoader(context).also { imageLoader = it }
-        }
-    }
-
-    private fun buildImageLoader(context: Context): ImageLoader {
-        return ImageLoader.Builder(context)
-            .memoryCache {
-                MemoryCache.Builder(context)
-                    .maxSizePercent(0.25) // Use 25% of the app's available memory for memory cache
-                    .build()
-            }
-            .diskCache {
-                DiskCache.Builder()
-                    .directory(context.cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.02) // Use 2% of the available disk space for disk cache
-                    .build()
-            }
-            .components {
-                // Add custom downsampling interceptor to reduce memory usage
-                // Images will be downsampled to max 800x600px before caching
-                add(ImageDownsamplingInterceptor(
-                    maxWidth = 800,   // Max width in pixels
-                    maxHeight = 600   // Max height in pixels
-                ))
-            }
-            .build()
+    /**
+     * Get ImageCacheManager instance
+     * This method is kept for backward compatibility with existing code
+     * but now returns ImageCacheManager instead of Coil's ImageLoader
+     */
+    fun provideImageLoader(context: Context): ImageCacheManager {
+        return ImageCacheManager.getInstance(context)
     }
 }

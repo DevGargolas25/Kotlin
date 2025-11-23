@@ -5,9 +5,9 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import com.example.brigadist.cache.CustomCacheDataSourceFactory
 import com.example.brigadist.ui.videos.model.Video
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,16 +26,16 @@ class VideoPreloader(private val context: Context) {
     }
 
     private val players = mutableMapOf<String, ExoPlayer>()
-    private val simpleCache = CacheUtil.getSimpleCache(context)
     
     // LRU tracking: most recently viewed videos first (max 2)
     private val lruOrder = mutableListOf<String>()
-
+    
     // A factory that creates a data source capable of reading from and writing to the cache
-    private val cacheDataSourceFactory = CacheDataSource.Factory()
-        .setCache(simpleCache)
-        .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context))
-        // Removed FLAG_IGNORE_CACHE_ON_ERROR to allow offline playback from cache
+    // Uses custom cache implementation instead of ExoPlayer's SimpleCache
+    private val cacheDataSourceFactory = CustomCacheDataSourceFactory(
+        context,
+        DefaultDataSource.Factory(context)
+    )
     
     /**
      * Marks a video as recently viewed and manages LRU cache (only 2 videos max)

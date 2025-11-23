@@ -3,7 +3,6 @@ package com.example.brigadist.ui.sos
 import android.content.Context
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
-import com.example.brigadist.data.PendingEmergencyStore
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.sos.model.Emergency
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -18,7 +17,6 @@ object EmergencyActions {
         emergencyType: EmergencyType,
         emergencyRepository: EmergencyRepository,
         orquestador: Orquestador,
-        pendingEmergencyStore: PendingEmergencyStore? = null,
         chatUsed: Boolean = false,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
@@ -67,10 +65,7 @@ object EmergencyActions {
                     emergency = emergency,
                     onSuccess = onSuccess,
                     onError = onError,
-                    onOffline = {
-                        pendingEmergencyStore?.setPendingEmergency(true)
-                        onOffline()
-                    }
+                    onOffline = onOffline
                 )
             }.addOnFailureListener {
                 val now = System.currentTimeMillis()
@@ -96,10 +91,7 @@ object EmergencyActions {
                     emergency = emergency,
                     onSuccess = onSuccess,
                     onError = onError,
-                    onOffline = {
-                        pendingEmergencyStore?.setPendingEmergency(true)
-                        onOffline()
-                    }
+                    onOffline = onOffline
                 )
             }
         } catch (e: SecurityException) {
@@ -126,10 +118,7 @@ object EmergencyActions {
                 emergency = emergency,
                 onSuccess = onSuccess,
                 onError = onError,
-                onOffline = {
-                    pendingEmergencyStore?.setPendingEmergency(true)
-                    onOffline()
-                }
+                onOffline = onOffline
             )
         }
     }

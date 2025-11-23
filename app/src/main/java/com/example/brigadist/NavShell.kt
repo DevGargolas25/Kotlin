@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.example.brigadist.auth.User
 import com.example.brigadist.data.EmergencyRepository
-import com.example.brigadist.data.PendingEmergencyStore
 import com.example.brigadist.ui.chat.ChatScreen
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
@@ -46,7 +45,7 @@ fun NavShell(
     var isOffline by rememberSaveable { mutableStateOf(false) }
     var showReconnectionModal by rememberSaveable { mutableStateOf(false) }
     var wasOffline by rememberSaveable { mutableStateOf(false) }
-    val pendingEmergencyStore = remember { PendingEmergencyStore(context) }
+    var isSyncing by rememberSaveable { mutableStateOf(false) }
     val emergencyRepository = remember { EmergencyRepository(context) }
 
     // Connectivity monitoring
@@ -57,7 +56,7 @@ fun NavShell(
             override fun onAvailable(network: Network) {
                 isOffline = false
                 // Check if we just came back online and have a pending emergency
-                if (wasOffline && pendingEmergencyStore.hasPendingEmergency()) {
+                if (wasOffline && emergencyRepository.hasPendingEmergencies()) {
                     showReconnectionModal = true
                 }
                 wasOffline = false
@@ -78,7 +77,7 @@ fun NavShell(
                 isOffline = !hasInternet
                 
                 // If we just came back online and have pending emergency
-                if (wasOfflineBefore && !isOffline && pendingEmergencyStore.hasPendingEmergency()) {
+                if (wasOfflineBefore && !isOffline && emergencyRepository.hasPendingEmergencies()) {
                     showReconnectionModal = true
                     wasOffline = false
                 } else if (isOffline) {
@@ -210,14 +209,16 @@ fun NavShell(
         if (showReconnectionModal) {
             SosReconnectionModal(
                 onSend = {
-                    // Firebase persistence will automatically sync the queued emergency
-                    // Clear the pending flag since we're confirming the send
-                    pendingEmergencyStore.clearPendingEmergency()
-                    showReconnectionModal = false
+                    // Sync pending emergencies from cache
+                    isSyncing = true
+                    emergencyRepository.syncPendingEmergencies { successCount, failureCount, totalCount ->
+                        isSyncing = false
+                        showReconnectionModal = false
+                        // Optionally show a toast or snackbar with sync results
+                    }
                 },
                 onDismiss = {
-                    // User chose not to send, clear the pending flag
-                    pendingEmergencyStore.clearPendingEmergency()
+                    // User chose not to send, keep emergencies in cache for later
                     showReconnectionModal = false
                 }
             )
