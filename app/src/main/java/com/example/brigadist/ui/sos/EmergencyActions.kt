@@ -11,6 +11,10 @@ import com.google.android.gms.maps.model.LatLng
 import java.util.Calendar
 
 object EmergencyActions {
+    // University coordinates
+    private val UNIVERSITY_COORDINATES = LatLng(4.602813, -74.065071)
+    // Distance threshold in meters (2 km = 2000 m)
+    private const val DISTANCE_THRESHOLD_METERS = 2000.0
 
     fun createAndSaveEmergency(
         context: Context,
@@ -18,9 +22,11 @@ object EmergencyActions {
         emergencyRepository: EmergencyRepository,
         orquestador: Orquestador,
         chatUsed: Boolean = false,
+        skipDistanceCheck: Boolean = false,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
-        onOffline: () -> Unit
+        onOffline: () -> Unit,
+        onDistanceWarning: ((Double, () -> Unit) -> Unit)? = null
     ) {
         val userId = orquestador.getUserProfile().studentId.ifEmpty {
             orquestador.firebaseUserProfile?.studentId ?: ""
@@ -36,10 +42,42 @@ object EmergencyActions {
 
         try {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                val buildingName = if (location != null) {
-                    getBuildingNameFromLocation(LatLng(location.latitude, location.longitude))
+                val currentLat = location?.latitude ?: 0.0
+                val currentLng = location?.longitude ?: 0.0
+                val currentLocation = if (location != null) {
+                    LatLng(currentLat, currentLng)
+                } else {
+                    null
+                }
+
+                val buildingName = if (currentLocation != null) {
+                    getBuildingNameFromLocation(currentLocation)
                 } else {
                     "SD"
+                }
+
+                // Check distance from university if location is available and check is not skipped
+                if (currentLocation != null && !skipDistanceCheck) {
+                    val distanceFromUniversity = calculateDistance(currentLocation, UNIVERSITY_COORDINATES)
+                    if (distanceFromUniversity > DISTANCE_THRESHOLD_METERS) {
+                        // Show distance warning
+                        onDistanceWarning?.invoke(distanceFromUniversity) {
+                            // User confirmed, proceed with emergency creation
+                            createAndSaveEmergency(
+                                context = context,
+                                emergencyType = emergencyType,
+                                emergencyRepository = emergencyRepository,
+                                orquestador = orquestador,
+                                chatUsed = chatUsed,
+                                skipDistanceCheck = true,
+                                onSuccess = onSuccess,
+                                onError = onError,
+                                onOffline = onOffline,
+                                onDistanceWarning = null // Don't show warning again
+                            )
+                        }
+                        return@addOnSuccessListener
+                    }
                 }
 
                 val now = System.currentTimeMillis()
@@ -51,6 +89,8 @@ object EmergencyActions {
                     emerType = emerTypeString,
                     emergencyID = 0,
                     location = buildingName,
+                    latitude = currentLat,
+                    longitude = currentLng,
                     secondsResponse = 5,
                     seconds_response = 5,
                     updatedAt = now,
@@ -68,6 +108,7 @@ object EmergencyActions {
                     onOffline = onOffline
                 )
             }.addOnFailureListener {
+                // Location unavailable, create emergency with default coordinates
                 val now = System.currentTimeMillis()
                 val emergency = Emergency(
                     EmerResquestTime = 0,
@@ -77,6 +118,8 @@ object EmergencyActions {
                     emerType = emerTypeString,
                     emergencyID = 0,
                     location = "SD",
+                    latitude = 0.0,
+                    longitude = 0.0,
                     secondsResponse = 5,
                     seconds_response = 5,
                     updatedAt = now,
@@ -95,6 +138,7 @@ object EmergencyActions {
                 )
             }
         } catch (e: SecurityException) {
+            // Location permission denied, create emergency with default coordinates
             val now = System.currentTimeMillis()
             val emergency = Emergency(
                 EmerResquestTime = 0,
@@ -104,6 +148,8 @@ object EmergencyActions {
                 emerType = emerTypeString,
                 emergencyID = 0,
                 location = "SD",
+                latitude = 0.0,
+                longitude = 0.0,
                 secondsResponse = 5,
                 seconds_response = 5,
                 updatedAt = now,

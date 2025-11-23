@@ -12,6 +12,8 @@ data class Emergency(
     var emerType: String = "",
     var emergencyID: Long = 0,
     var location: String = "",
+    var latitude: Double = 0.0,
+    var longitude: Double = 0.0,
     var secondsResponse: Int = 5,
     var seconds_response: Int = 5,
     var updatedAt: Long = 0,

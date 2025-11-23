@@ -42,6 +42,7 @@ fun SosSelectTypeModal(
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
     var showOfflineMessage by remember { mutableStateOf<Boolean>(false) }
+    var showDistanceWarning by remember { mutableStateOf<Pair<Double, () -> Unit>?>(null) }
     // Track modal opened
     LaunchedEffect(Unit) {
         SosTelemetry.trackSosSelectTypeOpened()
@@ -147,6 +148,9 @@ fun SosSelectTypeModal(
                                     },
                                     onOffline = {
                                         showOfflineMessage = true
+                                    },
+                                    onDistanceWarning = { distance, proceed ->
+                                        showDistanceWarning = Pair(distance, proceed)
                                     }
                                 )
                             },
@@ -176,6 +180,9 @@ fun SosSelectTypeModal(
                                     },
                                     onOffline = {
                                         showOfflineMessage = true
+                                    },
+                                    onDistanceWarning = { distance, proceed ->
+                                        showDistanceWarning = Pair(distance, proceed)
                                     }
                                 )
                             },
@@ -205,6 +212,9 @@ fun SosSelectTypeModal(
                                     },
                                     onOffline = {
                                         showOfflineMessage = true
+                                    },
+                                    onDistanceWarning = { distance, proceed ->
+                                        showDistanceWarning = Pair(distance, proceed)
                                     }
                                 )
                             },
@@ -225,6 +235,20 @@ fun SosSelectTypeModal(
     if (showOfflineMessage) {
         SosOfflineMessageModal(
             onDismiss = { showOfflineMessage = false }
+        )
+    }
+    
+    // Show distance warning dialog if needed
+    showDistanceWarning?.let { (distance, proceed) ->
+        DistanceWarningDialog(
+            distanceInMeters = distance,
+            onProceed = {
+                proceed()
+                showDistanceWarning = null
+            },
+            onCancel = {
+                showDistanceWarning = null
+            }
         )
     }
 }

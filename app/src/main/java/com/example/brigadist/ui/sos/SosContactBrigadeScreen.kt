@@ -60,6 +60,8 @@ fun SosContactBrigadeScreen(
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
 
+    var showDistanceWarning by remember { mutableStateOf<Pair<Double, () -> Unit>?>(null) }
+    
     // Sender lambda - tracks the push key so we can update ChatUsed later
     val sendMedicalEmergency: () -> Unit = {
         EmergencyActions.createAndSaveEmergency(
@@ -70,7 +72,10 @@ fun SosContactBrigadeScreen(
             chatUsed = ChatUsed,
             onSuccess = { key -> lastEmergencyKey = key },
             onError = { },
-            onOffline = { }
+            onOffline = { },
+            onDistanceWarning = { distance, proceed ->
+                showDistanceWarning = Pair(distance, proceed)
+            }
         )
     }
 
@@ -206,5 +211,19 @@ fun SosContactBrigadeScreen(
                 }
             }
         }
+    }
+    
+    // Show distance warning dialog if needed
+    showDistanceWarning?.let { (distance, proceed) ->
+        DistanceWarningDialog(
+            distanceInMeters = distance,
+            onProceed = {
+                proceed()
+                showDistanceWarning = null
+            },
+            onCancel = {
+                showDistanceWarning = null
+            }
+        )
     }
 }
