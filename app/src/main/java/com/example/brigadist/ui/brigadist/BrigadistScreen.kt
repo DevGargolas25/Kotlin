@@ -31,10 +31,10 @@ fun BrigadistScreen(
                 onSelect = { dest ->
                     selected = dest
                     showProfile = false
-                    // Show placeholder message based on destination
+                    // Show placeholder message based on destination (except Chat which has its own screen)
                     showPlaceholderMessage = when (dest) {
                         Destination.Home -> null
-                        Destination.Chat -> "Here will be the chat"
+                        Destination.Chat -> null // Chat has its own screen
                         Destination.Emergency -> "Here will be the emergency"
                         Destination.Map -> "Here will be the map"
                         Destination.Videos -> "Here will be the videos"
@@ -81,6 +81,10 @@ fun BrigadistScreen(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(16.dp)
                             )
+                        }
+                        selected == Destination.Chat -> {
+                            // Chat screen
+                            BrigadistChatScreen()
                         }
                         showPlaceholderMessage != null -> {
                             // Show placeholder message for selected destination
