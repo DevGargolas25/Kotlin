@@ -155,7 +155,10 @@ class MainActivity : ComponentActivity() {
                 }
                 isBrigadistUser -> {
                     BrigadistTheme(darkTheme = false) {
-                        BrigadistScreen(onLogout = { logout() })
+                        BrigadistScreen(
+                            orquestador = Orquestador(user!!, this@MainActivity, isOfflineMode = false),
+                            onLogout = { logout() }
+                        )
                     }
                 }
                 else -> {
@@ -484,6 +487,11 @@ fun BrigadistApp(
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
+                    }
+                    
+                    Destination.Emergency -> {
+                        // Emergency destination (used in Brigadist view)
+                        // Regular users use SOS button instead
                     }
                 }
             }

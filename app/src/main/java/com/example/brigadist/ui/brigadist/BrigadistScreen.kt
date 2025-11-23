@@ -1,94 +1,105 @@
 package com.example.brigadist.ui.brigadist
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.brigadist.Orquestador
+import com.example.brigadist.ui.components.BrBottomBar
+import com.example.brigadist.ui.components.Destination
+import com.example.brigadist.ui.home.components.HomeNotificationBar
 
 @Composable
 fun BrigadistScreen(
+    orquestador: Orquestador,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isLoggingOut by remember { mutableStateOf(false) }
-    var logoutError by remember { mutableStateOf<String?>(null) }
+    var selected by rememberSaveable { mutableStateOf(Destination.Home) }
+    var showProfile by rememberSaveable { mutableStateOf(false) }
+    var showPlaceholderMessage by remember { mutableStateOf<String?>(null) }
     
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Main message
-            Text(
-                text = "You are a Brigadist",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-            
-            // Logout Button
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 32.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            isLoggingOut = true
-                            logoutError = null
-                            try {
-                                onLogout()
-                            } catch (e: Exception) {
-                                logoutError = "Logout failed. Please try again."
-                                isLoggingOut = false
-                            }
-                        },
-                        enabled = !isLoggingOut,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                    ) {
-                        if (isLoggingOut) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        Text(
-                            text = "Logout",
-                            style = MaterialTheme.typography.labelLarge
-                        )
+    Scaffold(
+        bottomBar = {
+            BrBottomBar(
+                selected = selected,
+                onSelect = { dest ->
+                    selected = dest
+                    showProfile = false
+                    // Show placeholder message based on destination
+                    showPlaceholderMessage = when (dest) {
+                        Destination.Home -> null
+                        Destination.Chat -> "Here will be the chat"
+                        Destination.Emergency -> "Here will be the emergency"
+                        Destination.Map -> "Here will be the map"
+                        Destination.Videos -> "Here will be the videos"
                     }
-                    
-                    // Error message
-                    logoutError?.let { error ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center
-                        )
+                },
+                useEmergencyAsDestination = true,
+                onSosClick = {} // Not used when useEmergencyAsDestination is true
+            )
+        }
+    ) { innerPadding ->
+        Surface(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                // Header with HomeScreen text and profile icon
+                HomeNotificationBar(
+                    text = "HomeScreen",
+                    onBellClick = { /* Notifications placeholder */ },
+                    onMenuClick = { showProfile = true }
+                )
+                
+                Spacer(Modifier.height(8.dp))
+                
+                // Body content
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        showProfile -> {
+                            // Profile placeholder
+                            Text(
+                                text = "Here will be the profile",
+                                style = MaterialTheme.typography.headlineMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        showPlaceholderMessage != null -> {
+                            // Show placeholder message for selected destination
+                            Text(
+                                text = showPlaceholderMessage!!,
+                                style = MaterialTheme.typography.headlineMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        selected == Destination.Home -> {
+                            // Home content
+                            Text(
+                                text = "This will be the home",
+                                style = MaterialTheme.typography.headlineMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
                     }
                 }
             }

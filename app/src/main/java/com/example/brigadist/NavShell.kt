@@ -160,6 +160,11 @@ fun NavShell(
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
                     }
+                    
+                    Destination.Emergency -> {
+                        // Emergency destination (used in Brigadist view)
+                        // Regular users use SOS button instead
+                    }
 
 
                 }

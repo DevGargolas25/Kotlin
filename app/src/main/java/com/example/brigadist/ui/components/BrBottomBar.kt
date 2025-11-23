@@ -24,13 +24,14 @@ import com.example.brigadist.R
 import com.example.brigadist.ui.theme.DeepPurple
 import com.example.brigadist.ui.theme.LightAqua
 
-enum class Destination { Home, Chat, Map, Videos }
+enum class Destination { Home, Chat, Map, Videos, Emergency }
 
 @Composable
 fun BrBottomBar(
     selected: Destination,
     onSelect: (Destination) -> Unit,
-    onSosClick: () -> Unit,
+    onSosClick: () -> Unit = {},
+    useEmergencyAsDestination: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
@@ -56,20 +57,42 @@ fun BrBottomBar(
             icon = { Icon(painterResource(R.drawable.ic_forum), contentDescription = "Chat") },
             label = { Text(stringResource(R.string.chat_tab_label)) }
         )
-        // SOS (center action, not a destination)
-        NavigationBarItem(
-            selected = false,
-            onClick = onSosClick,
-            icon = {
-                Icon(
-                    Icons.Filled.Warning,
-                    contentDescription = "SOS",
-                    tint = MaterialTheme.colorScheme.error
+        // SOS or Emergency (conditional based on useEmergencyAsDestination)
+        if (useEmergencyAsDestination) {
+            // Emergency as destination
+            NavigationBarItem(
+                selected = selected == Destination.Emergency,
+                onClick = { onSelect(Destination.Emergency) },
+                icon = {
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = "Emergency",
+                        tint = if (selected == Destination.Emergency) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                },
+                label = { Text("Emergency") },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 )
-            },
-            label = { Text("SOS", color = MaterialTheme.colorScheme.error) },
-            alwaysShowLabel = true
-        )
+            )
+        } else {
+            // SOS (center action, not a destination) - existing behavior
+            NavigationBarItem(
+                selected = false,
+                onClick = onSosClick,
+                icon = {
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = "SOS",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                label = { Text("SOS", color = MaterialTheme.colorScheme.error) },
+                alwaysShowLabel = true
+            )
+        }
         // Map
         NavigationBarItem(
             selected = selected == Destination.Map,
