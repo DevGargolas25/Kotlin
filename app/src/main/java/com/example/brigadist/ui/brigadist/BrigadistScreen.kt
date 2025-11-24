@@ -1,6 +1,7 @@
 package com.example.brigadist.ui.brigadist
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,6 +12,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
@@ -83,8 +85,12 @@ fun BrigadistScreen(
                     // Chat screen
                     BrigadistChatScreen()
                 }
+                Destination.Map -> {
+                    BrigadistMapScreen(
+                        orquestador = orquestador
+                    )
+                }
                 Destination.Emergency,
-                Destination.Map,
                 Destination.Videos -> {
                     // Show placeholder message for selected destination
                     Box(
@@ -258,55 +264,21 @@ fun EmergencyTable(
     emergencyRepository: EmergencyRepository,
     onEmergencyAttended: () -> Unit
 ) {
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Table header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Emergency #",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f)
+        items(emergencies) { (key, emergency) ->
+            EmergencyTableRow(
+                emergencyKey = key,
+                emergency = emergency,
+                brigadistLocation = brigadistLocation,
+                brigadistEmail = brigadistEmail,
+                emergencyRepository = emergencyRepository,
+                onEmergencyAttended = onEmergencyAttended
             )
-            Text(
-                text = "Distance",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "Action",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.End
-            )
-        }
-        
-        HorizontalDivider()
-        
-        // Table rows
-        LazyColumn(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(emergencies) { (key, emergency) ->
-                EmergencyTableRow(
-                    emergencyKey = key,
-                    emergency = emergency,
-                    brigadistLocation = brigadistLocation,
-                    brigadistEmail = brigadistEmail,
-                    emergencyRepository = emergencyRepository,
-                    onEmergencyAttended = onEmergencyAttended
-                )
-                HorizontalDivider()
-            }
         }
     }
 }
@@ -329,31 +301,18 @@ fun EmergencyTableRow(
     
     val distanceText = distance?.let { formatDistance(it) } ?: "N/A"
     
-    Row(
+    // Get emergency type display name
+    val emergencyTypeText = when (emergency.emerType.lowercase()) {
+        "fire" -> "🔥 Fire"
+        "medical" -> "🏥 Medical"
+        "earthquake" -> "🌍 Earthquake"
+        else -> emergency.emerType
+    }
+    
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Emergency number
-        Text(
-            text = emergency.emergencyID.toString(),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
-        
-        // Distance
-        Text(
-            text = distanceText,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center
-        )
-        
-        // Attend button
-        Button(
-            onClick = {
+            .clickable {
                 emergencyRepository.updateEmergencyStatus(
                     emergencyKey = emergencyKey,
                     newStatus = "In progress",
@@ -362,9 +321,49 @@ fun EmergencyTableRow(
                     onError = { /* Handle error */ }
                 )
             },
-            modifier = Modifier.weight(1f)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Attend")
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = emergencyTypeText,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Location: ${emergency.location}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(
+                    text = distanceText,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "away",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
