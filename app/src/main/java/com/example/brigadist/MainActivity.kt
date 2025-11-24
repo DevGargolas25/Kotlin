@@ -46,6 +46,7 @@ import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
 import com.example.brigadist.ui.analytics.AnalyticsHomeScreen
+import com.example.brigadist.ui.brigadist.BrigadistScreen
 import com.example.brigadist.data.EmergencyRepository
 import com.google.firebase.FirebaseApp
 import androidx.compose.foundation.layout.*
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var account: Auth0
     private var user by mutableStateOf<User?>(null)
     private var isAnalyticsUser by mutableStateOf(false)
+    private var isBrigadistUser by mutableStateOf(false)
     private var isOfflineMode by mutableStateOf(false)
     private var isOnline by mutableStateOf(true)
     private var showSetOfflinePassword by mutableStateOf(false)
@@ -99,6 +101,7 @@ class MainActivity : ComponentActivity() {
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                         val userType = orquestador.getUserType().lowercase()
                         isAnalyticsUser = userType == "analytics" || userType == "analitics"
+                        isBrigadistUser = userType == "brigadist"
                     }, 1000) // 1 second delay to allow Firebase to load
                 }
             }
@@ -150,6 +153,14 @@ class MainActivity : ComponentActivity() {
                         AnalyticsHomeScreen(onLogout = { logout() })
                     }
                 }
+                isBrigadistUser -> {
+                    BrigadistTheme(darkTheme = false) {
+                        BrigadistScreen(
+                            orquestador = Orquestador(user!!, this@MainActivity, isOfflineMode = false),
+                            onLogout = { logout() }
+                        )
+                    }
+                }
                 else -> {
                     BrigadistApp(
                         orquestador = Orquestador(user!!, this@MainActivity, isOfflineMode = isOfflineMode),
@@ -190,6 +201,7 @@ class MainActivity : ComponentActivity() {
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                             val userType = orquestador.getUserType().lowercase()
                             isAnalyticsUser = userType == "analytics" || userType == "analitics"
+                            isBrigadistUser = userType == "brigadist"
                             
                             // Check if offline password is set up, if not, prompt to set it
                             if (!offlineCredentialsManager.hasOfflineCredentials()) {
@@ -475,6 +487,11 @@ fun BrigadistApp(
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                         }
+                    }
+                    
+                    Destination.Emergency -> {
+                        // Emergency destination (used in Brigadist view)
+                        // Regular users use SOS button instead
                     }
                 }
             }
