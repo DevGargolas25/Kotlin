@@ -5,7 +5,10 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.example.brigadist.cache.EmergencyCacheManager
 import com.example.brigadist.ui.sos.model.Emergency
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -121,6 +124,69 @@ class EmergencyRepository(private val context: Context? = null) {
         database.child(emergencyKey).updateChildren(updates)
             .addOnSuccessListener { onComplete() }
             .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update ChatUsed") }
+    }
+
+    /**
+     * Listen to emergencies with specific status(es)
+     * @param statuses List of statuses to filter (e.g., ["Unattended"] or ["Unattended", "In progress"])
+     * @param onEmergencyUpdate Callback invoked when emergencies are updated
+     * @return ValueEventListener that can be used to remove the listener
+     */
+    fun listenToEmergenciesByStatus(
+        statuses: List<String>,
+        onEmergencyUpdate: (List<Pair<String, Emergency>>) -> Unit
+    ): ValueEventListener {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val emergencies = mutableListOf<Pair<String, Emergency>>()
+                for (child in snapshot.children) {
+                    val emergency = child.getValue(Emergency::class.java)
+                    val key = child.key ?: continue
+                    if (emergency != null && emergency.status in statuses) {
+                        emergencies.add(Pair(key, emergency))
+                    }
+                }
+                onEmergencyUpdate(emergencies)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error silently or log it
+            }
+        }
+        database.addValueEventListener(listener)
+        return listener
+    }
+
+    /**
+     * Update emergency status
+     * @param emergencyKey The Firebase key of the emergency
+     * @param newStatus The new status (e.g., "In progress")
+     * @param brigadistEmail The email of the brigadist attending the emergency
+     * @param onSuccess Callback on success
+     * @param onError Callback on error
+     */
+    fun updateEmergencyStatus(
+        emergencyKey: String,
+        newStatus: String,
+        brigadistEmail: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        val updates = mapOf(
+            "status" to newStatus,
+            "assignedBrigadistId" to brigadistEmail,
+            "updatedAt" to System.currentTimeMillis()
+        )
+        database.child(emergencyKey).updateChildren(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
+    }
+
+    /**
+     * Remove a listener
+     */
+    fun removeListener(listener: ValueEventListener) {
+        database.removeEventListener(listener)
     }
 }
 

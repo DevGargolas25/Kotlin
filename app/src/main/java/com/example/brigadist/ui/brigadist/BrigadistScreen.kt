@@ -2,18 +2,30 @@ package com.example.brigadist.ui.brigadist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
+import com.example.brigadist.data.EmergencyRepository
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.components.HomeNotificationBar
 import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
+import com.example.brigadist.ui.sos.model.Emergency
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.delay
+import kotlin.math.*
 
 @Composable
 fun BrigadistScreen(
@@ -55,35 +67,10 @@ fun BrigadistScreen(
             when (selected) {
                 Destination.Home -> {
                     if (!showProfile) {
-                        // Home screen with header
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            // Header with HomeScreen text and profile icon - only on Home screen
-                            HomeNotificationBar(
-                                text = "HomeScreen",
-                                onBellClick = { /* Notifications placeholder */ },
-                                onMenuClick = { showProfile = true }
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            
-                            // Home content
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .weight(1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "This will be the home",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        }
+                        BrigadistHomeScreen(
+                            orquestador = orquestador,
+                            onMenuClick = { showProfile = true }
+                        )
                     } else {
                         // Profile screen - reuse existing ProfileScreen component (has its own Scaffold)
                         ProfileScreen(
@@ -117,3 +104,291 @@ fun BrigadistScreen(
     }
 }
 
+@Composable
+fun BrigadistHomeScreen(
+    orquestador: Orquestador,
+    onMenuClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val emergencyRepository = remember { EmergencyRepository(context) }
+    val brigadistEmail = orquestador.getUserProfile().email
+    
+    // State for emergencies
+    var emergencies by remember { mutableStateOf<List<Pair<String, Emergency>>>(emptyList()) }
+    var brigadistLocation by remember { mutableStateOf<LatLng?>(null) }
+    var hasInProgressEmergency by remember { mutableStateOf(false) }
+    
+    // Get brigadist's current location - update periodically
+    LaunchedEffect(Unit) {
+        val fusedLocationClient: FusedLocationProviderClient = 
+            LocationServices.getFusedLocationProviderClient(context)
+        
+        // Function to get and update location
+        suspend fun updateLocation() {
+            try {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    location?.let {
+                        brigadistLocation = LatLng(it.latitude, it.longitude)
+                    }
+                }
+            } catch (e: SecurityException) {
+                // Handle permission denied - location will remain null
+            }
+        }
+        
+        // Get initial location
+        updateLocation()
+        
+        // Update location every 5 seconds to ensure we have current location
+        while (true) {
+            delay(5000)
+            updateLocation()
+        }
+    }
+    
+    // Listen to emergencies - only fetch "Unattended" status as requested
+    // Also check for "In progress" assigned to this brigadist separately
+    DisposableEffect(Unit) {
+        // Use a local variable to track in-progress state between callbacks
+        var currentHasInProgress = false
+        
+        // Check for "In progress" emergencies assigned to this brigadist
+        val inProgressListener = emergencyRepository.listenToEmergenciesByStatus(
+            listOf("In progress")
+        ) { emergencyList ->
+            val assignedInProgress = emergencyList.filter { (_, emergency) ->
+                emergency.assignedBrigadistId == brigadistEmail &&
+                emergency.latitude != 0.0 && emergency.longitude != 0.0
+            }
+            
+            currentHasInProgress = assignedInProgress.isNotEmpty()
+            hasInProgressEmergency = currentHasInProgress
+            
+            // If there's an in-progress emergency, show only that one
+            if (currentHasInProgress) {
+                emergencies = assignedInProgress
+            }
+        }
+        
+        // Listen to "Unattended" emergencies only (as requested)
+        val unattendedListener = emergencyRepository.listenToEmergenciesByStatus(
+            listOf("Unattended")
+        ) { emergencyList ->
+            // Check current state - only update if we don't have an in-progress emergency
+            if (!hasInProgressEmergency) {
+                // Filter out emergencies without valid latitude/longitude
+                val validEmergencies = emergencyList.filter { (_, emergency) ->
+                    // Only include emergencies with valid coordinates (not 0.0, 0.0)
+                    emergency.latitude != 0.0 && emergency.longitude != 0.0 &&
+                    emergency.status == "Unattended"
+                }
+                
+                emergencies = validEmergencies
+            }
+        }
+        
+        onDispose {
+            emergencyRepository.removeListener(inProgressListener)
+            emergencyRepository.removeListener(unattendedListener)
+        }
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        HomeNotificationBar(
+            text = "HomeScreen",
+            onBellClick = { /* Notifications placeholder */ },
+            onMenuClick = onMenuClick
+        )
+        Spacer(Modifier.height(8.dp))
+        
+        // Emergency table
+        if (hasInProgressEmergency) {
+            Text(
+                text = "Emergency In Progress",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            Text(
+                text = "Unattended Emergencies",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+        
+        if (emergencies.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (hasInProgressEmergency) 
+                        "No emergency in progress" 
+                    else 
+                        "No unattended emergencies",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            EmergencyTable(
+                emergencies = emergencies,
+                brigadistLocation = brigadistLocation,
+                brigadistEmail = brigadistEmail,
+                emergencyRepository = emergencyRepository,
+                onEmergencyAttended = {
+                    // Emergency status updated, will trigger re-fetch
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun EmergencyTable(
+    emergencies: List<Pair<String, Emergency>>,
+    brigadistLocation: LatLng?,
+    brigadistEmail: String,
+    emergencyRepository: EmergencyRepository,
+    onEmergencyAttended: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Table header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Emergency #",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "Distance",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Action",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.End
+            )
+        }
+        
+        HorizontalDivider()
+        
+        // Table rows
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(emergencies) { (key, emergency) ->
+                EmergencyTableRow(
+                    emergencyKey = key,
+                    emergency = emergency,
+                    brigadistLocation = brigadistLocation,
+                    brigadistEmail = brigadistEmail,
+                    emergencyRepository = emergencyRepository,
+                    onEmergencyAttended = onEmergencyAttended
+                )
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+fun EmergencyTableRow(
+    emergencyKey: String,
+    emergency: Emergency,
+    brigadistLocation: LatLng?,
+    brigadistEmail: String,
+    emergencyRepository: EmergencyRepository,
+    onEmergencyAttended: () -> Unit
+) {
+    val distance = remember(emergency, brigadistLocation) {
+        brigadistLocation?.let { location ->
+            val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
+            calculateDistance(location, emergencyLocation)
+        }
+    }
+    
+    val distanceText = distance?.let { formatDistance(it) } ?: "N/A"
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Emergency number
+        Text(
+            text = emergency.emergencyID.toString(),
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        
+        // Distance
+        Text(
+            text = distanceText,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
+        )
+        
+        // Attend button
+        Button(
+            onClick = {
+                emergencyRepository.updateEmergencyStatus(
+                    emergencyKey = emergencyKey,
+                    newStatus = "In progress",
+                    brigadistEmail = brigadistEmail,
+                    onSuccess = onEmergencyAttended,
+                    onError = { /* Handle error */ }
+                )
+            },
+            modifier = Modifier.weight(1f)
+        ) {
+            Text("Attend")
+        }
+    }
+}
+
+private fun calculateDistance(point1: LatLng, point2: LatLng): Double {
+    val earthRadius = 6371000.0 // Earth's radius in meters
+    
+    val lat1Rad = Math.toRadians(point1.latitude)
+    val lat2Rad = Math.toRadians(point2.latitude)
+    val deltaLatRad = Math.toRadians(point2.latitude - point1.latitude)
+    val deltaLngRad = Math.toRadians(point2.longitude - point1.longitude)
+    
+    val a = sin(deltaLatRad / 2) * sin(deltaLatRad / 2) +
+            cos(lat1Rad) * cos(lat2Rad) *
+            sin(deltaLngRad / 2) * sin(deltaLngRad / 2)
+    
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    
+    return earthRadius * c
+}
+
+private fun formatDistance(meters: Double): String {
+    return when {
+        meters < 1000 -> "${meters.toInt()} m"
+        else -> String.format("%.2f km", meters / 1000)
+    }
+}
