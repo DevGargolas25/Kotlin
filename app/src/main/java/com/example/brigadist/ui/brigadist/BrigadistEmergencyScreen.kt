@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
+import com.example.brigadist.data.prefs.EmergencyPreferences
 import com.example.brigadist.data.repository.FirebaseProfileRepository
 import com.example.brigadist.ui.brigadist.components.*
 import com.example.brigadist.ui.profile.model.FirebaseUserProfile
@@ -28,12 +29,14 @@ import com.example.brigadist.ui.sos.model.Emergency
 fun BrigadistEmergencyScreen(
     orquestador: Orquestador,
     selectedEmergency: Pair<String, Emergency>?,
-    onEmergencyResolved: () -> Unit
+    onEmergencyResolved: () -> Unit,
+    onEmergencyAutoSelected: (Pair<String, Emergency>) -> Unit,
+    emergencyPreferences: EmergencyPreferences,
+    brigadistEmail: String
 ) {
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
     val profileRepository = remember { FirebaseProfileRepository() }
-    val brigadistEmail = orquestador.getUserProfile().email
     
     // State for user medical information
     var userProfile by remember { mutableStateOf<FirebaseUserProfile?>(null) }
@@ -41,9 +44,47 @@ fun BrigadistEmergencyScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showResolveConfirmation by remember { mutableStateOf(false) }
     
+    // Auto-select in-progress emergency if none is selected
+    // This runs whenever selectedEmergency changes (including when it's null)
+    DisposableEffect(selectedEmergency) {
+        var hasSelected = false
+        var listener: com.google.firebase.database.ValueEventListener? = null
+        
+        if (selectedEmergency == null) {
+            // Check for in-progress emergencies assigned to this brigadist
+            listener = emergencyRepository.listenToEmergenciesByStatus(
+                listOf("In progress")
+            ) { emergencyList ->
+                if (!hasSelected) {
+                    val assignedInProgress = emergencyList.filter { (_, emergency) ->
+                        emergency.assignedBrigadistId == brigadistEmail &&
+                        emergency.latitude != 0.0 && emergency.longitude != 0.0
+                    }
+                    
+                    // Auto-select the first in-progress emergency if found
+                    assignedInProgress.firstOrNull()?.let { emergency ->
+                        hasSelected = true
+                        onEmergencyAutoSelected(emergency)
+                    }
+                }
+            }
+        }
+        
+        onDispose {
+            listener?.let { emergencyRepository.removeListener(it) }
+        }
+    }
+    
     // Fetch user medical information when emergency is selected
     LaunchedEffect(selectedEmergency) {
         if (selectedEmergency != null) {
+            // First, try to load from local storage (works offline)
+            val savedProfile = emergencyPreferences.getUserProfile()
+            if (savedProfile != null) {
+                userProfile = savedProfile
+                isLoading = false
+            }
+            
             val emergency = selectedEmergency.second
             val userEmail = emergency.userId
             
@@ -51,14 +92,25 @@ fun BrigadistEmergencyScreen(
                 isLoading = true
                 errorMessage = null
                 
+                // Try to fetch from Firebase (if online)
                 profileRepository.getUserProfile(
                     email = userEmail,
                     onSuccess = { profile ->
                         userProfile = profile
                         isLoading = false
+                        // Save to local storage for offline access
+                        emergencyPreferences.saveSelectedEmergency(
+                            emergencyKey = selectedEmergency.first,
+                            emergency = emergency,
+                            userProfile = profile,
+                            brigadistEmail = brigadistEmail
+                        )
                     },
                     onError = { error ->
-                        errorMessage = error
+                        // If offline and we have saved data, use that
+                        if (savedProfile == null) {
+                            errorMessage = error
+                        }
                         isLoading = false
                     }
                 )

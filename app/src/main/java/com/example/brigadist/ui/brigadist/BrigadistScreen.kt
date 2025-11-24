@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
+import com.example.brigadist.data.prefs.EmergencyPreferences
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.components.HomeNotificationBar
@@ -35,10 +36,28 @@ fun BrigadistScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val emergencyPreferences = remember { EmergencyPreferences(context) }
+    val brigadistEmail = orquestador.getUserProfile().email
+    
     var selected by rememberSaveable { mutableStateOf(Destination.Home) }
     var showProfile by rememberSaveable { mutableStateOf(false) }
     var showPlaceholderMessage by remember { mutableStateOf<String?>(null) }
-    var selectedEmergency by rememberSaveable { mutableStateOf<Pair<String, Emergency>?>(null) }
+    var selectedEmergency by remember { mutableStateOf<Pair<String, Emergency>?>(null) }
+    
+    // Load saved emergency on startup (works offline)
+    LaunchedEffect(Unit) {
+        val savedEmergencyKey = emergencyPreferences.getSelectedEmergencyKey()
+        val savedBrigadistEmail = emergencyPreferences.getBrigadistEmail()
+        
+        // Only restore if it was assigned to this brigadist
+        if (savedEmergencyKey != null && savedBrigadistEmail == brigadistEmail) {
+            val savedEmergency = emergencyPreferences.getSelectedEmergency()
+            if (savedEmergency != null) {
+                selectedEmergency = Pair(savedEmergencyKey, savedEmergency)
+            }
+        }
+    }
     
     Scaffold(
         bottomBar = {
@@ -75,6 +94,13 @@ fun BrigadistScreen(
                             onMenuClick = { showProfile = true },
                             onEmergencySelected = { key, emergency ->
                                 selectedEmergency = Pair(key, emergency)
+                                // Save emergency immediately (profile will be added later)
+                                emergencyPreferences.saveSelectedEmergency(
+                                    emergencyKey = key,
+                                    emergency = emergency,
+                                    userProfile = null,
+                                    brigadistEmail = brigadistEmail
+                                )
                                 selected = Destination.Emergency
                             }
                         )
@@ -101,7 +127,20 @@ fun BrigadistScreen(
                         selectedEmergency = selectedEmergency,
                         onEmergencyResolved = {
                             selectedEmergency = null
-                        }
+                            emergencyPreferences.clearSelectedEmergency()
+                        },
+                        onEmergencyAutoSelected = { emergency ->
+                            selectedEmergency = emergency
+                            // Save emergency immediately when auto-selected
+                            emergencyPreferences.saveSelectedEmergency(
+                                emergencyKey = emergency.first,
+                                emergency = emergency.second,
+                                userProfile = null,
+                                brigadistEmail = brigadistEmail
+                            )
+                        },
+                        emergencyPreferences = emergencyPreferences,
+                        brigadistEmail = brigadistEmail
                     )
                 }
                 Destination.Videos -> {
@@ -310,6 +349,8 @@ fun EmergencyTableRow(
     onEmergencyAttended: () -> Unit,
     onEmergencySelected: (String, Emergency) -> Unit
 ) {
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    
     val distance = remember(emergency, brigadistLocation) {
         brigadistLocation?.let { location ->
             val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
@@ -331,18 +372,8 @@ fun EmergencyTableRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // First, attend the emergency
-                emergencyRepository.updateEmergencyStatus(
-                    emergencyKey = emergencyKey,
-                    newStatus = "In progress",
-                    brigadistEmail = brigadistEmail,
-                    onSuccess = {
-                        onEmergencyAttended()
-                        // Then navigate to emergency details
-                        onEmergencySelected(emergencyKey, emergency)
-                    },
-                    onError = { /* Handle error */ }
-                )
+                // Show confirmation dialog first
+                showConfirmationDialog = true
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
@@ -388,6 +419,47 @@ fun EmergencyTableRow(
                 )
             }
         }
+    }
+    
+    // Confirmation dialog
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = {
+                Text("Attend Emergency")
+            },
+            text = {
+                Text("Are you sure you want to attend this ${emergency.emerType.lowercase()} emergency?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmationDialog = false
+                        // First, attend the emergency
+                        emergencyRepository.updateEmergencyStatus(
+                            emergencyKey = emergencyKey,
+                            newStatus = "In progress",
+                            brigadistEmail = brigadistEmail,
+                            onSuccess = {
+                                onEmergencyAttended()
+                                // Then navigate to emergency details
+                                onEmergencySelected(emergencyKey, emergency)
+                            },
+                            onError = { /* Handle error */ }
+                        )
+                    }
+                ) {
+                    Text("Attend")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showConfirmationDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
