@@ -28,9 +28,7 @@ object EmergencyActions {
         onOffline: () -> Unit,
         onDistanceWarning: ((Double, () -> Unit) -> Unit)? = null
     ) {
-        val userId = orquestador.getUserProfile().studentId.ifEmpty {
-            orquestador.firebaseUserProfile?.studentId ?: ""
-        }
+        val userId = orquestador.getUserProfile().email
 
         val emerTypeString = when (emergencyType) {
             EmergencyType.FIRE -> "Fire"
