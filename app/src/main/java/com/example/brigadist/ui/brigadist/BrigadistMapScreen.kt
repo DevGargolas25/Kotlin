@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
+import com.example.brigadist.ui.map.components.RecenterButton
 import com.example.brigadist.ui.sos.model.Emergency
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -25,8 +26,9 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
-import com.google.firebase.database.ValueEventListener
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.*
 
 @Composable
@@ -148,49 +150,93 @@ fun BrigadistMapScreen(
         }
     }
     
-    Box(modifier = Modifier.fillMaxSize()) {
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                mapType = MapType.NORMAL
-            )
-        ) {
-            // Add markers for all emergencies
-            emergencies.forEach { (key, emergency) ->
-                val isClosest = closestEmergency?.first == key
-                val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
-                
-                Marker(
-                    state = MarkerState(position = emergencyLocation),
-                    title = emergency.emerType,
-                    snippet = "Location: ${emergency.location}",
-                    icon = if (isClosest) {
-                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
-                    } else {
-                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)
-                    }
+    val coroutineScope = rememberCoroutineScope()
+    
+    Scaffold(
+        modifier = Modifier.fillMaxSize()
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(
+                    mapType = MapType.NORMAL
                 )
-            }
-        }
-        
-        // Show banner for closest emergency
-        closestEmergency?.let { (key, emergency) ->
-            val distance = brigadistLocation?.let { location ->
-                val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
-                calculateDistance(location, emergencyLocation)
+            ) {
+                // Add markers for all emergencies
+                emergencies.forEach { (key, emergency) ->
+                    val isClosest = closestEmergency?.first == key
+                    val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
+                    
+                    Marker(
+                        state = MarkerState(position = emergencyLocation),
+                        title = emergency.emerType,
+                        snippet = "Location: ${emergency.location}",
+                        icon = if (isClosest) {
+                            BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+                        } else {
+                            BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)
+                        }
+                    )
+                }
             }
             
-            EmergencyMapBanner(
-                emergency = emergency,
-                distance = distance,
-                onNavigateClick = {
-                    openWalkingDirections(context, emergency)
+            // Recenter button
+            RecenterButton(
+                onClick = {
+                    closestEmergency?.let { (_, emergency) ->
+                        val target = LatLng(emergency.latitude, emergency.longitude)
+                        coroutineScope.launch {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newCameraPosition(
+                                    CameraPosition.Builder()
+                                        .target(target)
+                                        .zoom(16f)
+                                        .build()
+                                )
+                            )
+                        }
+                    }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .align(Alignment.BottomEnd)
                     .padding(16.dp)
             )
+            
+            // Show banner for closest emergency
+            closestEmergency?.let { (_, emergency) ->
+                val distance = brigadistLocation?.let { location ->
+                    val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
+                    calculateDistance(location, emergencyLocation)
+                }
+                
+                val etaMinutes = distance?.let { calculateEtaMinutes(it) }
+                
+                EmergencyMapBanner(
+                    emergency = emergency,
+                    distance = distance,
+                    etaMinutes = etaMinutes,
+                    onNavigateClick = {
+                        openWalkingDirections(context, emergency)
+                    },
+                    onViewOnMapClick = {
+                        val target = LatLng(emergency.latitude, emergency.longitude)
+                        coroutineScope.launch {
+                            cameraPositionState.animate(
+                                CameraUpdateFactory.newCameraPosition(
+                                    CameraPosition.Builder()
+                                        .target(target)
+                                        .zoom(16f)
+                                        .build()
+                                )
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                )
+            }
         }
     }
 }
@@ -199,16 +245,11 @@ fun BrigadistMapScreen(
 fun EmergencyMapBanner(
     emergency: Emergency,
     distance: Double?,
+    etaMinutes: Int?,
     onNavigateClick: () -> Unit,
+    onViewOnMapClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val emergencyTypeText = when (emergency.emerType.lowercase()) {
-        "fire" -> "🔥 Fire"
-        "medical" -> "🏥 Medical"
-        "earthquake" -> "🌍 Earthquake"
-        else -> emergency.emerType
-    }
-    
     val distanceText = distance?.let { formatDistance(it) } ?: "N/A"
     
     Card(
@@ -231,7 +272,7 @@ fun EmergencyMapBanner(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = emergencyTypeText,
+                text = emergency.emerType,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
@@ -243,31 +284,50 @@ fun EmergencyMapBanner(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Location: ${emergency.location}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Text(
                     text = distanceText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
+                etaMinutes?.let {
+                    Text(
+                        text = "~$it min walking",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Button(
-                onClick = onNavigateClick,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Navigate",
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Navigate")
+                OutlinedButton(
+                    onClick = onNavigateClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Navigate",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Navigate")
+                }
+                
+                OutlinedButton(
+                    onClick = onViewOnMapClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "View on map",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("View on map")
+                }
             }
         }
     }
@@ -307,8 +367,17 @@ private fun calculateDistance(point1: LatLng, point2: LatLng): Double {
 
 private fun formatDistance(meters: Double): String {
     return when {
-        meters < 1000 -> "${meters.toInt()} m"
-        else -> String.format("%.2f km", meters / 1000)
+        meters < 1000 -> "${meters.roundToInt()} m"
+        else -> "${(meters / 1000).roundToInt()} km"
     }
 }
+
+private fun calculateEtaMinutes(distanceMeters: Double): Int {
+    // Walking speed: ~5 km/h = 83.33 m/min
+    val etaMinutes = (distanceMeters / 83.33).toInt()
+    return maxOf(1, etaMinutes) // Minimum 1 minute
+}
+
+private fun Double.roundToInt(): Int = kotlin.math.round(this).toInt()
+
 
