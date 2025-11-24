@@ -38,6 +38,7 @@ fun BrigadistScreen(
     var selected by rememberSaveable { mutableStateOf(Destination.Home) }
     var showProfile by rememberSaveable { mutableStateOf(false) }
     var showPlaceholderMessage by remember { mutableStateOf<String?>(null) }
+    var selectedEmergency by rememberSaveable { mutableStateOf<Pair<String, Emergency>?>(null) }
     
     Scaffold(
         bottomBar = {
@@ -71,7 +72,11 @@ fun BrigadistScreen(
                     if (!showProfile) {
                         BrigadistHomeScreen(
                             orquestador = orquestador,
-                            onMenuClick = { showProfile = true }
+                            onMenuClick = { showProfile = true },
+                            onEmergencySelected = { key, emergency ->
+                                selectedEmergency = Pair(key, emergency)
+                                selected = Destination.Emergency
+                            }
                         )
                     } else {
                         // Profile screen - reuse existing ProfileScreen component (has its own Scaffold)
@@ -90,7 +95,15 @@ fun BrigadistScreen(
                         orquestador = orquestador
                     )
                 }
-                Destination.Emergency,
+                Destination.Emergency -> {
+                    BrigadistEmergencyScreen(
+                        orquestador = orquestador,
+                        selectedEmergency = selectedEmergency,
+                        onEmergencyResolved = {
+                            selectedEmergency = null
+                        }
+                    )
+                }
                 Destination.Videos -> {
                     // Show placeholder message for selected destination
                     Box(
@@ -113,7 +126,8 @@ fun BrigadistScreen(
 @Composable
 fun BrigadistHomeScreen(
     orquestador: Orquestador,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onEmergencySelected: (String, Emergency) -> Unit
 ) {
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
@@ -250,7 +264,8 @@ fun BrigadistHomeScreen(
                 emergencyRepository = emergencyRepository,
                 onEmergencyAttended = {
                     // Emergency status updated, will trigger re-fetch
-                }
+                },
+                onEmergencySelected = onEmergencySelected
             )
         }
     }
@@ -262,7 +277,8 @@ fun EmergencyTable(
     brigadistLocation: LatLng?,
     brigadistEmail: String,
     emergencyRepository: EmergencyRepository,
-    onEmergencyAttended: () -> Unit
+    onEmergencyAttended: () -> Unit,
+    onEmergencySelected: (String, Emergency) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -277,7 +293,8 @@ fun EmergencyTable(
                 brigadistLocation = brigadistLocation,
                 brigadistEmail = brigadistEmail,
                 emergencyRepository = emergencyRepository,
-                onEmergencyAttended = onEmergencyAttended
+                onEmergencyAttended = onEmergencyAttended,
+                onEmergencySelected = onEmergencySelected
             )
         }
     }
@@ -290,7 +307,8 @@ fun EmergencyTableRow(
     brigadistLocation: LatLng?,
     brigadistEmail: String,
     emergencyRepository: EmergencyRepository,
-    onEmergencyAttended: () -> Unit
+    onEmergencyAttended: () -> Unit,
+    onEmergencySelected: (String, Emergency) -> Unit
 ) {
     val distance = remember(emergency, brigadistLocation) {
         brigadistLocation?.let { location ->
@@ -313,11 +331,16 @@ fun EmergencyTableRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
+                // First, attend the emergency
                 emergencyRepository.updateEmergencyStatus(
                     emergencyKey = emergencyKey,
                     newStatus = "In progress",
                     brigadistEmail = brigadistEmail,
-                    onSuccess = onEmergencyAttended,
+                    onSuccess = {
+                        onEmergencyAttended()
+                        // Then navigate to emergency details
+                        onEmergencySelected(emergencyKey, emergency)
+                    },
                     onError = { /* Handle error */ }
                 )
             },
