@@ -101,6 +101,8 @@ fun NavShell(
         wasOffline = isOffline
     }
 
+    val emergencyPreferences = remember { com.example.brigadist.data.prefs.EmergencyPreferences(context) }
+    
     BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<Video?>(null) }
@@ -108,6 +110,7 @@ fun NavShell(
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
         var showSosConfirmationModal by rememberSaveable { mutableStateOf(false) }
+        var showContactBrigadeScreen by rememberSaveable { mutableStateOf(false) }
         var selectedEmergencyType by remember { mutableStateOf<EmergencyType?>(null) }
         Scaffold(
             bottomBar = {
@@ -119,7 +122,14 @@ fun NavShell(
                         // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
                     },
-                    onSosClick = { showSosModal = true }
+                    onSosClick = { 
+                        // Check if there's an active medical emergency first
+                        if (emergencyPreferences.hasActiveMedicalEmergency()) {
+                            showContactBrigadeScreen = true
+                        } else {
+                            showSosModal = true
+                        }
+                    }
                 )
             }
         ) { inner ->
@@ -226,6 +236,14 @@ fun NavShell(
                     // User chose not to send, keep emergencies in cache for later
                     showReconnectionModal = false
                 }
+            )
+        }
+        
+        // Contact Brigade Screen
+        if (showContactBrigadeScreen) {
+            com.example.brigadist.ui.sos.SosContactBrigadeScreen(
+                orquestador = orquestador,
+                onBack = { showContactBrigadeScreen = false }
             )
         }
     }

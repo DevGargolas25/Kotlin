@@ -20,7 +20,7 @@ class EmergencyRepository(private val context: Context? = null) {
     /**
      * Checks if device is currently online.
      */
-    private fun isOnline(): Boolean {
+    fun isOnline(): Boolean {
         if (context == null) return true // Assume online if context not provided
         
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -182,6 +182,51 @@ class EmergencyRepository(private val context: Context? = null) {
             .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
     }
 
+    /**
+     * Listen to a single emergency by key
+     * @param emergencyKey The Firebase key of the emergency
+     * @param onEmergencyUpdate Callback invoked when emergency is updated
+     * @return ValueEventListener that can be used to remove the listener
+     */
+    fun listenToEmergencyByKey(
+        emergencyKey: String,
+        onEmergencyUpdate: (Emergency?) -> Unit
+    ): ValueEventListener {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val emergency = snapshot.getValue(Emergency::class.java)
+                onEmergencyUpdate(emergency)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error - return null to indicate error
+                onEmergencyUpdate(null)
+            }
+        }
+        database.child(emergencyKey).addValueEventListener(listener)
+        return listener
+    }
+    
+    /**
+     * Get a single emergency by key (one-time read)
+     */
+    fun getEmergencyByKey(
+        emergencyKey: String,
+        onSuccess: (Emergency?) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        database.child(emergencyKey).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val emergency = snapshot.getValue(Emergency::class.java)
+                onSuccess(emergency)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                onError(error.message ?: "Failed to get emergency")
+            }
+        })
+    }
+    
     /**
      * Remove a listener
      */
