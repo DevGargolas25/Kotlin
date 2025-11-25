@@ -70,7 +70,7 @@ fun BrBottomBar(
                         tint = if (selected == Destination.Emergency) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                     )
                 },
-                label = { Text("Emergency") },
+                label = { Text("SOS") },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
