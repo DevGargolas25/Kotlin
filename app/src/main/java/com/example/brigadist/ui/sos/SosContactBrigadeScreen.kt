@@ -60,6 +60,7 @@ fun SosContactBrigadeScreen(
     var isOnline by remember { mutableStateOf(emergencyRepository.isOnline()) }
     
     var showDistanceWarning by remember { mutableStateOf<Pair<Double, () -> Unit>?>(null) }
+    var showCancelConfirmation by remember { mutableStateOf(false) }
     
     // Get emergency key - either from preferences (existing) or create new one
     LaunchedEffect(Unit) {
@@ -353,6 +354,9 @@ fun SosContactBrigadeScreen(
                         ContactBrigadeLocationTab(
                             emergency = currentEmergency,
                             isOnline = isOnline,
+                            onCancelEmergency = {
+                                showCancelConfirmation = true
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -380,6 +384,66 @@ fun SosContactBrigadeScreen(
             },
             onCancel = {
                 showDistanceWarning = null
+            }
+        )
+    }
+    
+    // Cancel emergency confirmation dialog
+    if (showCancelConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showCancelConfirmation = false },
+            title = {
+                Text("Cancel Emergency")
+            },
+            text = {
+                Text("Are you sure you want to cancel this emergency? This will mark it as resolved and you will be taken back to the home screen.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelConfirmation = false
+                        emergencyKey?.let { key ->
+                            if (isOnline) {
+                                emergencyRepository.resolveEmergency(
+                                    emergencyKey = key,
+                                    onSuccess = {
+                                        // Clear active emergency
+                                        emergencyPreferences.clearActiveMedicalEmergency()
+                                        emergencyPreferences.clearSelectedEmergency()
+                                        emergencyKey = null
+                                        currentEmergency = null
+                                        // Navigate back
+                                        onBack()
+                                    },
+                                    onError = { error ->
+                                        // Error resolving - could show error message
+                                        // For now, just close dialog
+                                    }
+                                )
+                            } else {
+                                // Offline - still clear local state and navigate back
+                                // Status will sync when online
+                                emergencyPreferences.clearActiveMedicalEmergency()
+                                emergencyPreferences.clearSelectedEmergency()
+                                emergencyKey = null
+                                currentEmergency = null
+                                onBack()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Cancel Emergency")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCancelConfirmation = false }
+                ) {
+                    Text("Keep Emergency")
+                }
             }
         )
     }

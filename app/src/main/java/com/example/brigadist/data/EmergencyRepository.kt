@@ -181,6 +181,26 @@ class EmergencyRepository(private val context: Context? = null) {
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
     }
+    
+    /**
+     * Resolve emergency (only updates status, preserves assignedBrigadistId)
+     * @param emergencyKey The Firebase key of the emergency
+     * @param onSuccess Callback on success
+     * @param onError Callback on error
+     */
+    fun resolveEmergency(
+        emergencyKey: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        val updates = mapOf(
+            "status" to "Resolved",
+            "updatedAt" to System.currentTimeMillis()
+        )
+        database.child(emergencyKey).updateChildren(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to resolve emergency") }
+    }
 
     /**
      * Listen to a single emergency by key

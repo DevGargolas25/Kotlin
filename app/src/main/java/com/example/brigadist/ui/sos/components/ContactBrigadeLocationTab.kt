@@ -17,6 +17,7 @@ import com.example.brigadist.ui.sos.model.Emergency
 fun ContactBrigadeLocationTab(
     emergency: Emergency?,
     isOnline: Boolean,
+    onCancelEmergency: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -67,7 +68,7 @@ fun ContactBrigadeLocationTab(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
+                    Text(
                             text = emergency?.status ?: "Unknown",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
@@ -209,6 +210,25 @@ fun ContactBrigadeLocationTab(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
+            }
+        }
+        
+        // Cancel Emergency Button (only show if not already resolved)
+        if (emergency?.status != "Resolved") {
+            Button(
+                onClick = onCancelEmergency,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Cancel Emergency")
             }
         }
     }
