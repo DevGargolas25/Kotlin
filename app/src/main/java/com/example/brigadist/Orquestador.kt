@@ -1,11 +1,14 @@
 package com.example.brigadist
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.brigadist.auth.User
 import com.example.brigadist.ui.chat.model.ConversationUi
+import com.example.brigadist.ui.profile.data.repository.HybridProfileRepository
 import com.example.brigadist.ui.profile.model.Allergies
 import com.example.brigadist.ui.profile.model.EmergencyContact
 import com.example.brigadist.ui.profile.model.FirebaseUserProfile
@@ -22,6 +25,9 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class Orquestador(
     private val user: User,
@@ -35,6 +41,8 @@ class Orquestador(
     } else {
         null
     }
+    private val profileRepository = HybridProfileRepository(context)
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     var firebaseUserProfile by mutableStateOf<FirebaseUserProfile?>(null)
         private set
@@ -44,25 +52,63 @@ class Orquestador(
     init {
         if (!isOfflineMode) {
             fetchUserProfile()
+        } else {
+            // Load from SQLite when offline
+            loadProfileFromLocal()
         }
     }
 
     private fun fetchUserProfile() {
         userRef?.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                firebaseUserProfile = snapshot.getValue(FirebaseUserProfile::class.java)
+                val profile = snapshot.getValue(FirebaseUserProfile::class.java)
+                firebaseUserProfile = profile
+                // Sync to local database when online
+                profile?.let {
+                    scope.launch {
+                        profileRepository.updateUserProfile(
+                            it,
+                            onSuccess = { /* Successfully synced */ },
+                            onError = { /* Error syncing, but continue */ }
+                        )
+                    }
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error
+                // Handle error - try loading from local database as fallback
+                loadProfileFromLocal()
             }
         })
     }
 
+    private fun loadProfileFromLocal() {
+        val userEmail = user.email
+        if (userEmail.isNotEmpty()) {
+            profileRepository.getUserProfile(
+                email = userEmail,
+                onSuccess = { profile ->
+                    firebaseUserProfile = profile
+                },
+                onError = { /* No local profile found */ }
+            )
+        }
+    }
+
     fun updateUserProfile(profile: FirebaseUserProfile) {
         if (!isOfflineMode) {
+            // Online: Update Firebase (which will sync to local via HybridProfileRepository)
             userRef?.setValue(profile)
+        } else {
+            // Offline: Update local SQLite database
+            profileRepository.updateUserProfile(
+                profile = profile,
+                onSuccess = { /* Successfully saved locally */ },
+                onError = { /* Error saving locally */ }
+            )
         }
+        // Update local state
+        firebaseUserProfile = profile
     }
 
     

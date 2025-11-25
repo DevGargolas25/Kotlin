@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
 import com.example.brigadist.data.prefs.EmergencyPreferences
-import com.example.brigadist.data.repository.FirebaseProfileRepository
+import com.example.brigadist.ui.profile.data.repository.HybridProfileRepository
 import com.example.brigadist.ui.brigadist.components.*
 import com.example.brigadist.ui.profile.model.FirebaseUserProfile
 import com.example.brigadist.ui.sos.model.Emergency
@@ -36,7 +36,7 @@ fun BrigadistEmergencyScreen(
 ) {
     val context = LocalContext.current
     val emergencyRepository = remember { EmergencyRepository(context) }
-    val profileRepository = remember { FirebaseProfileRepository() }
+    val profileRepository = remember { HybridProfileRepository(context) }
     
     // State for user medical information
     var userProfile by remember { mutableStateOf<FirebaseUserProfile?>(null) }
