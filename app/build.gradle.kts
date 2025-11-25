@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    
+    // Kapt for Room annotation processing
+    id("org.jetbrains.kotlin.kapt")
 
     // Necesario para que Firebase use google-services.json
     id("com.google.gms.google-services")
@@ -112,4 +115,10 @@ dependencies {
     
     // Security for encrypted shared preferences
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    
+    // Room for SQLite local database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
 }

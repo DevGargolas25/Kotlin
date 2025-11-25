@@ -4,18 +4,12 @@ import android.app.Application
 import android.content.ComponentCallbacks2
 import com.example.brigadist.cache.ImageCacheManager
 import com.example.brigadist.cache.VideoCacheManager
-import com.google.firebase.database.FirebaseDatabase
 
 class BrigadistApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // Enable Firebase offline persistence BEFORE any database references are created
-        try {
-            FirebaseDatabase.getInstance().setPersistenceEnabled(true)
-        } catch (e: Exception) {
-            // Already enabled or error, continue
-        }
+        // Firebase offline persistence removed - using SQLite for local storage instead
     }
     
     override fun onLowMemory() {

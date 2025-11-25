@@ -35,7 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import com.example.brigadist.Orquestador
-import com.example.brigadist.data.repository.FirebaseProfileRepository
+import com.example.brigadist.data.repository.ProfileRepository
+import com.example.brigadist.ui.profile.data.repository.HybridProfileRepository
 import com.example.brigadist.ui.profile.ProfilePresenter
 import com.example.brigadist.ui.profile.ProfileView
 import com.example.brigadist.ui.profile.model.Allergies
@@ -171,7 +172,7 @@ fun ProfileScreen(
     val presenter = remember {
         ProfilePresenter(
             view = profileView,
-            repository = FirebaseProfileRepository(),
+            repository = HybridProfileRepository(context),
             coroutineScope = CoroutineScope(Dispatchers.Default),
             context = context
         )
