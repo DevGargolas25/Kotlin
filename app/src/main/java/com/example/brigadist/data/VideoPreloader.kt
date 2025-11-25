@@ -1,6 +1,7 @@
 package com.example.brigadist.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -30,12 +31,24 @@ class VideoPreloader(private val context: Context) {
     // LRU tracking: most recently viewed videos first (max 2)
     private val lruOrder = mutableListOf<String>()
     
+    // SharedPreferences for persisting LRU order across app restarts
+    private val prefs: SharedPreferences = context.getSharedPreferences(
+        "video_preloader_prefs",
+        Context.MODE_PRIVATE
+    )
+    private val keyLruOrder = "lru_order"
+    
     // A factory that creates a data source capable of reading from and writing to the cache
     // Uses custom cache implementation instead of ExoPlayer's SimpleCache
     private val cacheDataSourceFactory = CustomCacheDataSourceFactory(
         context,
         DefaultDataSource.Factory(context)
     )
+    
+    init {
+        // Load persisted LRU order on initialization
+        loadLruOrder()
+    }
     
     /**
      * Marks a video as recently viewed and manages LRU cache (only 2 videos max)
@@ -53,6 +66,35 @@ class VideoPreloader(private val context: Context) {
                 Log.d(TAG, "🗑️ Releasing oldest video from cache (LRU): $oldestVideoId")
                 releasePlayer(oldestVideoId)
             }
+            
+            // Persist LRU order
+            saveLruOrder()
+        }
+    }
+    
+    /**
+     * Save LRU order to SharedPreferences
+     */
+    private fun saveLruOrder() {
+        val orderStr = lruOrder.joinToString(",")
+        prefs.edit().putString(keyLruOrder, orderStr).apply()
+    }
+    
+    /**
+     * Load LRU order from SharedPreferences
+     */
+    private fun loadLruOrder() {
+        val orderStr = prefs.getString(keyLruOrder, null)
+        if (orderStr != null && orderStr.isNotEmpty()) {
+            synchronized(lruOrder) {
+                lruOrder.clear()
+                lruOrder.addAll(orderStr.split(",").filter { it.isNotEmpty() })
+                // Limit to MAX_CACHED_VIDEOS
+                while (lruOrder.size > MAX_CACHED_VIDEOS) {
+                    lruOrder.removeAt(lruOrder.size - 1)
+                }
+            }
+            Log.d(TAG, "📂 Loaded ${lruOrder.size} videos from persisted LRU order")
         }
     }
 
@@ -112,6 +154,7 @@ class VideoPreloader(private val context: Context) {
         synchronized(lruOrder) {
             lruOrder.clear()
             lruOrder.addAll(videosToPreload.map { it.id })
+            saveLruOrder()
         }
     }
 
@@ -164,6 +207,7 @@ class VideoPreloader(private val context: Context) {
             // Remove from LRU order as well
             synchronized(lruOrder) {
                 lruOrder.remove(videoId)
+                saveLruOrder()
             }
         }
     }
@@ -176,6 +220,7 @@ class VideoPreloader(private val context: Context) {
             // Clear LRU order as well
             synchronized(lruOrder) {
                 lruOrder.clear()
+                saveLruOrder()
             }
             Log.d(TAG, "✅ All players released")
         }

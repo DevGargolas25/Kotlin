@@ -32,7 +32,10 @@ class VideoCacheManager private constructor(context: Context) {
     )
     
     init {
-        cacheDir = File(context.cacheDir, "video_cache")
+        // Use filesDir instead of cacheDir for persistent storage
+        // cacheDir can be cleared by Android when storage is low or app is closed
+        // filesDir persists until app is uninstalled
+        cacheDir = File(context.filesDir, "video_cache")
         if (!cacheDir.exists()) {
             cacheDir.mkdirs()
         }

@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 
 class VideosViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val firebaseVideoAdapter = FirebaseVideoAdapter()
+    private val firebaseVideoAdapter = FirebaseVideoAdapter(application.applicationContext)
     private val connectivityManager = application.getSystemService(Application.CONNECTIVITY_SERVICE) as ConnectivityManager
     
     // Initialize VideoPreloader with application context
