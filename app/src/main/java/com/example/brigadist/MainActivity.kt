@@ -562,7 +562,10 @@ fun BrigadistApp(
         if (showContactBrigadeScreen) {
             SosContactBrigadeScreen(
                 orquestador = orquestador,
-                onBack = { showContactBrigadeScreen = false }
+                onBack = { 
+                    showContactBrigadeScreen = false
+                    selected = Destination.Home
+                }
             )
         }
         
