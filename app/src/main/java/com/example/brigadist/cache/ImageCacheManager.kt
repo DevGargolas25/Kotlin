@@ -42,7 +42,10 @@ class ImageCacheManager private constructor(context: Context) {
         }
         
         // Setup disk cache directory
-        diskCacheDir = File(context.cacheDir, "image_cache")
+        // Use filesDir instead of cacheDir for persistent storage
+        // cacheDir can be cleared by Android when storage is low or app is closed
+        // filesDir persists until app is uninstalled
+        diskCacheDir = File(context.filesDir, "image_cache")
         if (!diskCacheDir.exists()) {
             diskCacheDir.mkdirs()
         }

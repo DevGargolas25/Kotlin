@@ -430,6 +430,9 @@ fun BrigadistApp(
     }
 
     BrigadistTheme(darkTheme = themeState.isDark) {
+        val context = LocalContext.current
+        val emergencyPreferences = remember { com.example.brigadist.data.prefs.EmergencyPreferences(context) }
+        
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<Video?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
@@ -449,7 +452,14 @@ fun BrigadistApp(
                         if (dest == Destination.Home) showProfile = false
                         if (dest == Destination.Chat) showChatDetail = false
                     },
-                    onSosClick = { showSosModal = true }
+                    onSosClick = { 
+                        // Check if there's an active medical emergency first
+                        if (emergencyPreferences.hasActiveMedicalEmergency()) {
+                            showContactBrigadeScreen = true
+                        } else {
+                            showSosModal = true
+                        }
+                    }
                 )
             }
         ) { inner ->

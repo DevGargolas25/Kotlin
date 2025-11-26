@@ -164,7 +164,7 @@ private fun SosConfirmationMessage(
     val message = when (emergencyType) {
         EmergencyType.FIRE -> "The fire emergency has been reported to the corresponding personnel."
         EmergencyType.EARTHQUAKE -> "The earthquake emergency has been reported to the corresponding personnel."
-        EmergencyType.MEDICAL -> "The medical emergency has been reported to the corresponding personnel."
+        EmergencyType.MEDICAL -> "The medical emergency has been reported to the corresponding personnel." // Only used in ContactBrigadeScreen, kept for completeness
     }
     
     Card(

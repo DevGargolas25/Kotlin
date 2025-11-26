@@ -17,6 +17,7 @@ class EmergencyPreferences(context: Context) {
     private val keySelectedEmergencyData = "selected_emergency_data"
     private val keyUserProfileData = "user_profile_data"
     private val keyBrigadistEmail = "brigadist_email"
+    private val keyActiveMedicalEmergencyKey = "active_medical_emergency_key"
     
     /**
      * Save the selected emergency and its data locally
@@ -95,6 +96,34 @@ class EmergencyPreferences(context: Context) {
      */
     fun hasSelectedEmergency(): Boolean {
         return getSelectedEmergencyKey() != null
+    }
+    
+    /**
+     * Save active medical emergency key (for Contact Brigade screen persistence)
+     */
+    fun saveActiveMedicalEmergency(emergencyKey: String) {
+        prefs.edit().putString(keyActiveMedicalEmergencyKey, emergencyKey).apply()
+    }
+    
+    /**
+     * Get active medical emergency key
+     */
+    fun getActiveMedicalEmergencyKey(): String? {
+        return prefs.getString(keyActiveMedicalEmergencyKey, null)
+    }
+    
+    /**
+     * Clear active medical emergency
+     */
+    fun clearActiveMedicalEmergency() {
+        prefs.edit().remove(keyActiveMedicalEmergencyKey).apply()
+    }
+    
+    /**
+     * Check if there's an active medical emergency
+     */
+    fun hasActiveMedicalEmergency(): Boolean {
+        return getActiveMedicalEmergencyKey() != null
     }
     
     // Emergency serialization

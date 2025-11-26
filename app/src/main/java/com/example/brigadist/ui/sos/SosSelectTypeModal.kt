@@ -27,7 +27,6 @@ import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.sos.components.SosTypeRow
-import com.example.brigadist.ui.sos.model.Emergency
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -176,38 +175,6 @@ fun SosSelectTypeModal(
                                     onError = {
                                         // Still proceed with existing flow even if Firebase write fails
                                         onTypeSelected(EmergencyType.EARTHQUAKE)
-                                        onDismiss()
-                                    },
-                                    onOffline = {
-                                        showOfflineMessage = true
-                                    },
-                                    onDistanceWarning = { distance, proceed ->
-                                        showDistanceWarning = Pair(distance, proceed)
-                                    }
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        SosTypeRow(
-                            emergencyType = EmergencyType.MEDICAL,
-                            subtitle = "Report medical emergency or injury",
-                            onClick = {
-                                SosTelemetry.trackSosTypeSelected(EmergencyType.MEDICAL)
-                                EmergencyActions.createAndSaveEmergency(
-                                    context = context,
-                                    emergencyType = EmergencyType.MEDICAL,
-                                    emergencyRepository = emergencyRepository,
-                                    orquestador = orquestador,
-                                    onSuccess = { _ ->
-                                        onTypeSelected(EmergencyType.MEDICAL)
-                                        onDismiss()
-                                    },
-                                    onError = {
-                                        // Still proceed with existing flow even if Firebase write fails
-                                        onTypeSelected(EmergencyType.MEDICAL)
                                         onDismiss()
                                     },
                                     onOffline = {
