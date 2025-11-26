@@ -61,6 +61,8 @@ fun SosContactBrigadeScreen(
     
     var showDistanceWarning by remember { mutableStateOf<Pair<Double, () -> Unit>?>(null) }
     var showCancelConfirmation by remember { mutableStateOf(false) }
+    var showEmergencyResolvedByBrigadistDialog by remember { mutableStateOf(false) }
+    var isResolvingByUser by remember { mutableStateOf(false) }
     
     // Get emergency key - either from preferences (existing) or create new one
     LaunchedEffect(Unit) {
@@ -152,10 +154,12 @@ fun SosContactBrigadeScreen(
     
     // Listen to emergency status changes
     var emergencyListener by remember { mutableStateOf<ValueEventListener?>(null) }
+    var previousEmergencyStatus by remember { mutableStateOf<String?>(null) }
     
     DisposableEffect(emergencyKey) {
         if (emergencyKey != null && emergencyRepository.isOnline()) {
             val listener = emergencyRepository.listenToEmergencyByKey(emergencyKey!!) { emergency ->
+                val previousStatus = previousEmergencyStatus
                 currentEmergency = emergency
                 
                 // Update saved emergency in preferences
@@ -167,11 +171,19 @@ fun SosContactBrigadeScreen(
                         brigadistEmail = emergency.assignedBrigadistId
                     )
                     
-                    // If resolved, clear active emergency
+                    // If resolved, show dialog and clear active emergency
                     if (emergency.status == "Resolved") {
-                        emergencyPreferences.clearActiveMedicalEmergency()
-                        emergencyKey = null
-                        currentEmergency = null
+                        // Only show dialog if status changed from something else to "Resolved"
+                        // and the user didn't resolve it themselves
+                        if (previousStatus != null && previousStatus != "Resolved" && !isResolvingByUser) {
+                            showEmergencyResolvedByBrigadistDialog = true
+                        } else if (!isResolvingByUser) {
+                            // If it was already resolved, just clear and navigate back
+                            emergencyPreferences.clearActiveMedicalEmergency()
+                            emergencyKey = null
+                            currentEmergency = null
+                            onBack()
+                        }
                     } 
                     // If status changed to "In progress", fetch brigadist phone
                     else if (emergency.status == "In progress" && emergency.assignedBrigadistId.isNotEmpty()) {
@@ -183,9 +195,13 @@ fun SosContactBrigadeScreen(
                     else if (emergency.status == "Unattended") {
                         brigadistPhoneNumber = null
                     }
+                    
+                    previousEmergencyStatus = emergency.status
                 }
             }
             emergencyListener = listener
+        } else {
+            previousEmergencyStatus = currentEmergency?.status
         }
         
         onDispose {
@@ -403,6 +419,7 @@ fun SosContactBrigadeScreen(
                     onClick = {
                         showCancelConfirmation = false
                         emergencyKey?.let { key ->
+                            isResolvingByUser = true
                             if (isOnline) {
                                 emergencyRepository.resolveEmergency(
                                     emergencyKey = key,
@@ -412,11 +429,13 @@ fun SosContactBrigadeScreen(
                                         emergencyPreferences.clearSelectedEmergency()
                                         emergencyKey = null
                                         currentEmergency = null
+                                        isResolvingByUser = false
                                         // Navigate back
                                         onBack()
                                     },
                                     onError = { error ->
                                         // Error resolving - could show error message
+                                        isResolvingByUser = false
                                         // For now, just close dialog
                                     }
                                 )
@@ -427,6 +446,7 @@ fun SosContactBrigadeScreen(
                                 emergencyPreferences.clearSelectedEmergency()
                                 emergencyKey = null
                                 currentEmergency = null
+                                isResolvingByUser = false
                                 onBack()
                             }
                         }
@@ -443,6 +463,42 @@ fun SosContactBrigadeScreen(
                     onClick = { showCancelConfirmation = false }
                 ) {
                     Text("Keep Emergency")
+                }
+            }
+        )
+    }
+    
+    // Dialog shown when emergency is resolved by brigadist
+    if (showEmergencyResolvedByBrigadistDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showEmergencyResolvedByBrigadistDialog = false
+                // Clear active emergency and navigate back
+                emergencyPreferences.clearActiveMedicalEmergency()
+                emergencyPreferences.clearSelectedEmergency()
+                emergencyKey = null
+                currentEmergency = null
+                onBack()
+            },
+            title = {
+                Text("Emergency Resolved")
+            },
+            text = {
+                Text("Your emergency has been marked as resolved. Returning to home screen.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showEmergencyResolvedByBrigadistDialog = false
+                        // Clear active emergency and navigate back
+                        emergencyPreferences.clearActiveMedicalEmergency()
+                        emergencyPreferences.clearSelectedEmergency()
+                        emergencyKey = null
+                        currentEmergency = null
+                        onBack()
+                    }
+                ) {
+                    Text("Return to Home")
                 }
             }
         )

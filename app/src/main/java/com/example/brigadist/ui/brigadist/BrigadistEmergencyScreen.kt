@@ -43,6 +43,8 @@ fun BrigadistEmergencyScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showResolveConfirmation by remember { mutableStateOf(false) }
+    var showEmergencyResolvedByUserDialog by remember { mutableStateOf(false) }
+    var isResolvingByBrigadist by remember { mutableStateOf(false) }
     
     // Auto-select in-progress emergency if none is selected
     // This runs whenever selectedEmergency changes (including when it's null)
@@ -72,6 +74,27 @@ fun BrigadistEmergencyScreen(
         
         onDispose {
             listener?.let { emergencyRepository.removeListener(it) }
+        }
+    }
+    
+    // Listen to emergency status changes to detect when user resolves it
+    var emergencyStatusListener by remember { mutableStateOf<com.google.firebase.database.ValueEventListener?>(null) }
+    
+    DisposableEffect(selectedEmergency) {
+        if (selectedEmergency != null) {
+            val listener = emergencyRepository.listenToEmergencyByKey(selectedEmergency.first) { emergency ->
+                // Check if emergency was resolved by the user (not by this brigadist)
+                // Only show dialog if we didn't initiate the resolve action ourselves
+                if (emergency?.status == "Resolved" && !isResolvingByBrigadist) {
+                    // Emergency was resolved by user, show dialog
+                    showEmergencyResolvedByUserDialog = true
+                }
+            }
+            emergencyStatusListener = listener
+        }
+        
+        onDispose {
+            emergencyStatusListener?.let { emergencyRepository.removeListener(it) }
         }
     }
     
@@ -369,17 +392,20 @@ fun BrigadistEmergencyScreen(
                 TextButton(
                     onClick = {
                         selectedEmergency?.let { (key, _) ->
+                            isResolvingByBrigadist = true
                             emergencyRepository.updateEmergencyStatus(
                                 emergencyKey = key,
                                 newStatus = "Resolved",
                                 brigadistEmail = brigadistEmail,
                                 onSuccess = {
                                     showResolveConfirmation = false
+                                    isResolvingByBrigadist = false
                                     onEmergencyResolved()
                                 },
                                 onError = { error ->
                                     errorMessage = "Failed to resolve emergency: $error"
                                     showResolveConfirmation = false
+                                    isResolvingByBrigadist = false
                                 }
                             )
                         }
@@ -393,6 +419,34 @@ fun BrigadistEmergencyScreen(
                     onClick = { showResolveConfirmation = false }
                 ) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    // Dialog shown when emergency is resolved by user (from classical view)
+    if (showEmergencyResolvedByUserDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showEmergencyResolvedByUserDialog = false
+                // Navigate back to home screen
+                onEmergencyResolved()
+            },
+            title = {
+                Text("Emergency Resolved")
+            },
+            text = {
+                Text("The emergency has been marked as resolved. Returning to home screen.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showEmergencyResolvedByUserDialog = false
+                        // Navigate back to home screen
+                        onEmergencyResolved()
+                    }
+                ) {
+                    Text("Return to Home")
                 }
             }
         )
