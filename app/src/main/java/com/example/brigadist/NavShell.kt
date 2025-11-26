@@ -243,7 +243,10 @@ fun NavShell(
         if (showContactBrigadeScreen) {
             com.example.brigadist.ui.sos.SosContactBrigadeScreen(
                 orquestador = orquestador,
-                onBack = { showContactBrigadeScreen = false }
+                onBack = { 
+                    showContactBrigadeScreen = false
+                    selected = Destination.Home
+                }
             )
         }
     }
