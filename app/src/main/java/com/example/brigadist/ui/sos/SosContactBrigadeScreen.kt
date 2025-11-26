@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -473,12 +476,15 @@ fun SosContactBrigadeScreen(
         AlertDialog(
             onDismissRequest = { 
                 showEmergencyResolvedByBrigadistDialog = false
-                // Clear active emergency and navigate back
-                emergencyPreferences.clearActiveMedicalEmergency()
-                emergencyPreferences.clearSelectedEmergency()
+                // Navigate immediately first
+                onBack()
+                // Cleanup happens asynchronously to avoid blocking
                 emergencyKey = null
                 currentEmergency = null
-                onBack()
+                CoroutineScope(Dispatchers.IO).launch {
+                    emergencyPreferences.clearActiveMedicalEmergency()
+                    emergencyPreferences.clearSelectedEmergency()
+                }
             },
             title = {
                 Text("Emergency Resolved")
@@ -490,12 +496,15 @@ fun SosContactBrigadeScreen(
                 TextButton(
                     onClick = {
                         showEmergencyResolvedByBrigadistDialog = false
-                        // Clear active emergency and navigate back
-                        emergencyPreferences.clearActiveMedicalEmergency()
-                        emergencyPreferences.clearSelectedEmergency()
+                        // Navigate immediately first
+                        onBack()
+                        // Cleanup happens asynchronously to avoid blocking
                         emergencyKey = null
                         currentEmergency = null
-                        onBack()
+                        CoroutineScope(Dispatchers.IO).launch {
+                            emergencyPreferences.clearActiveMedicalEmergency()
+                            emergencyPreferences.clearSelectedEmergency()
+                        }
                     }
                 ) {
                     Text("Return to Home")
