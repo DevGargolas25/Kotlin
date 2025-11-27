@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.brigadist.ui.home.components.HomeLearnOnYourOwnSection
 import com.example.brigadist.ui.home.components.HomeNotificationBar
 import com.example.brigadist.ui.home.components.HomeJoinBrigadeCard
+import com.example.brigadist.ui.home.components.HomeNewsCard
 import com.example.brigadist.ui.home.model.HomeUiState
 import com.example.brigadist.ui.videos.model.Video
 import kotlinx.coroutines.delay
@@ -33,6 +34,7 @@ fun HomeScreen(
     onLearnMore: () -> Unit = {},
     onVideoClick: (Video) -> Unit,
     onNavigateToVideos: () -> Unit,
+    onNavigateToNews: () -> Unit = {},
     showOfflineAlert: Boolean = false,
     onDismissOfflineAlert: () -> Unit = {}
 ) {
@@ -55,23 +57,25 @@ fun HomeScreen(
                 onMenuClick = onOpenProfileSettings
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             val greeting = if (userName.isNotBlank()) "Hi $userName!" else "Hi!"
             Text(
                 greeting,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             HomeJoinBrigadeCard(onJoinClick = onLearnMore)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             HomeLearnOnYourOwnSection(
                 videos = state.videos,
                 onVideoClick = onVideoClick,
                 onViewAllClick = onNavigateToVideos
             )
+            Spacer(Modifier.height(8.dp))
+            HomeNewsCard(onVisitNewsFeed = onNavigateToNews)
         }
 
         // Non-intrusive offline alert at the top

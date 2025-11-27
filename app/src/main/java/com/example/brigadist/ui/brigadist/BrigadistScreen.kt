@@ -29,6 +29,7 @@ import com.example.brigadist.ui.brigadist.viewmodel.rememberBrigadistHomeState
 import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.components.HomeNotificationBar
+import com.example.brigadist.ui.news.NewsRoute
 import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.model.Emergency
 
@@ -149,6 +150,9 @@ fun BrigadistScreen(
                             modifier = Modifier.padding(16.dp)
                         )
                     }
+                }
+                Destination.News -> {
+                    NewsRoute()
                 }
             }
         }

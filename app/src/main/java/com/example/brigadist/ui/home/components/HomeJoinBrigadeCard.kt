@@ -34,7 +34,7 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
@@ -42,19 +42,19 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
                 painter = painterResource(id = R.drawable.joinbrigadeimage),
                 contentDescription = "Join the Brigade",
                 modifier = Modifier
-                    .width(120.dp)
-                    .height(120.dp)
+                    .width(80.dp)
+                    .height(80.dp)
                     .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
                         contentAlignment = Alignment.Center
@@ -62,23 +62,24 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
                         Icon(
                             imageVector = Icons.Filled.Person,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
                         )
                     }
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         "Join the Brigade",
                         color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(3.dp))
                 Text(
                     "Become part of the student safety team and help keep our campus secure.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodySmall
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = onJoinClick,
                     shape = RoundedCornerShape(24.dp),
@@ -86,7 +87,7 @@ fun HomeJoinBrigadeCard(onJoinClick: () -> Unit = {}
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     modifier = Modifier.semantics { 
                         contentDescription = "Learn More about joining the Brigade on Instagram"
                     }
