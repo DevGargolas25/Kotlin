@@ -27,6 +27,9 @@ import com.example.brigadist.ui.sos.SosReconnectionModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
 import com.example.brigadist.ui.sos.components.EmergencyType
 import com.example.brigadist.ui.theme.BrigadistTheme
+import com.example.brigadist.ui.news.NewsDetailScreen
+import com.example.brigadist.ui.news.NewsRoute
+import com.example.brigadist.ui.news.model.News
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
@@ -106,6 +109,7 @@ fun NavShell(
     BrigadistTheme(darkTheme = themeState.isDark) {
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<Video?>(null) }
+        var selectedNews by remember { mutableStateOf<News?>(null) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
         var showSosSelectTypeModal by rememberSaveable { mutableStateOf(false) }
@@ -121,6 +125,8 @@ fun NavShell(
                         orchestrator.trackScreenView(dest.name)
                         // reset inner states when switching tabs
                         if (dest == Destination.Home) showProfile = false
+                        if (dest != Destination.News) selectedNews = null
+                        if (dest != Destination.Videos) selectedVideo = null
                     },
                     onSosClick = { 
                         // Check if there's an active medical emergency first
@@ -149,6 +155,7 @@ fun NavShell(
                                     orchestrator.trackScreenView("Profile")
                                 },    // <<< navigate to Profile
                                 onNavigateToVideos = { selected = Destination.Videos },
+                                onNavigateToNews = { selected = Destination.News },
                                 onOpenVideo = { video -> selectedVideo = video }
                             )
                         } else {
@@ -168,6 +175,19 @@ fun NavShell(
                             )
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
+                        }
+                    }
+                    
+                    Destination.News -> {
+                        if (selectedNews == null) {
+                            NewsRoute(
+                                onNewsClick = { news -> selectedNews = news }
+                            )
+                        } else {
+                            NewsDetailScreen(
+                                news = selectedNews!!,
+                                onBack = { selectedNews = null }
+                            )
                         }
                     }
                     

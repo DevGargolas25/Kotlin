@@ -49,7 +49,7 @@ fun HomeLearnOnYourOwnSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), // <-- ensure pure white
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Column(Modifier.padding(18.dp)) {
+        Column(Modifier.padding(12.dp)) {
 
             // Title row without CTA
             Row(
@@ -58,7 +58,7 @@ fun HomeLearnOnYourOwnSection(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(28.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
@@ -66,25 +66,26 @@ fun HomeLearnOnYourOwnSection(
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Learn on Your Own",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 "Watch training videos and safety guides at your own pace.",
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodySmall
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
 
             // Optional subtle inner frame like the mock
             Column(
@@ -96,7 +97,7 @@ fun HomeLearnOnYourOwnSection(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f),
                         shape = RoundedCornerShape(16.dp)
                     )
-                    .padding(vertical = 14.dp)
+                    .padding(vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -104,7 +105,7 @@ fun HomeLearnOnYourOwnSection(
                         .padding(horizontal = 8.dp)
                 ) {
                     videos.forEachIndexed { i, video ->
-                        if (i > 0) Spacer(Modifier.width(16.dp))
+                        if (i > 0) Spacer(Modifier.width(12.dp))
                         HomeVideoCardItem(video = video) { onVideoClick(video) }
                     }
                 }
@@ -112,7 +113,7 @@ fun HomeLearnOnYourOwnSection(
             }
             
             // "View All Videos" CTA below carousel
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             TextButton(
                 onClick = onViewAllClick,
                 modifier = Modifier

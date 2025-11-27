@@ -25,6 +25,7 @@ fun HomeRoute(
     onOpenVideo: (Video) -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onNavigateToVideos: () -> Unit = {},
+    onNavigateToNews: () -> Unit = {},
     onVideoClickFromCarousel: (Video) -> Unit = {},
     videosViewModel: VideosViewModel = viewModel()
 ) {
@@ -66,6 +67,7 @@ fun HomeRoute(
         onOpenProfileSettings = onOpenProfile,
         onVideoClick = onVideoClickFromCarousel,
         onNavigateToVideos = onNavigateToVideos,
+        onNavigateToNews = onNavigateToNews,
         onLearnMore = ::openInstagram,
         showOfflineAlert = showOfflineAlert,
         onDismissOfflineAlert = { showOfflineAlert = false }

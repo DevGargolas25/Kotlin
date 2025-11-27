@@ -42,6 +42,9 @@ import com.example.brigadist.ui.theme.BrigadistTheme
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.example.brigadist.ui.news.NewsDetailScreen
+import com.example.brigadist.ui.news.NewsRoute
+import com.example.brigadist.ui.news.model.News
 import com.example.brigadist.ui.videos.VideoDetailScreen
 import com.example.brigadist.ui.videos.VideosRoute
 import com.example.brigadist.ui.videos.model.Video
@@ -435,6 +438,7 @@ fun BrigadistApp(
         
         var selected by rememberSaveable { mutableStateOf(Destination.Home) }
         var selectedVideo by remember { mutableStateOf<Video?>(null) }
+        var selectedNews by remember { mutableStateOf<News?>(null) }
         var showChatDetail by rememberSaveable { mutableStateOf(false) }
         var showProfile by rememberSaveable { mutableStateOf(false) }
         var showSosModal by rememberSaveable { mutableStateOf(false) }
@@ -451,6 +455,8 @@ fun BrigadistApp(
                         selected = dest
                         if (dest == Destination.Home) showProfile = false
                         if (dest == Destination.Chat) showChatDetail = false
+                        if (dest != Destination.News) selectedNews = null
+                        if (dest != Destination.Videos) selectedVideo = null
                     },
                     onSosClick = { 
                         // Check if there's an active medical emergency first
@@ -476,6 +482,7 @@ fun BrigadistApp(
                                 userName = orquestador.getUserProfile().fullName,
                                 onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos },
+                                onNavigateToNews = { selected = Destination.News },
                                 onOpenVideo = { video -> selectedVideo = video },
                                 onVideoClickFromCarousel = { video ->
                                     selectedVideo = video
@@ -496,6 +503,19 @@ fun BrigadistApp(
                             VideosRoute(onVideoClick = { video -> selectedVideo = video })
                         } else {
                             VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
+                        }
+                    }
+                    
+                    Destination.News -> {
+                        if (selectedNews == null) {
+                            NewsRoute(
+                                onNewsClick = { news -> selectedNews = news }
+                            )
+                        } else {
+                            NewsDetailScreen(
+                                news = selectedNews!!,
+                                onBack = { selectedNews = null }
+                            )
                         }
                     }
                     

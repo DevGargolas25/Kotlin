@@ -26,14 +26,14 @@ fun HomeVideoCardItem(video: Video,
 ) {
     Surface(
         modifier = Modifier
-            .width(240.dp)
+            .width(200.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp,
         shadowElevation = 4.dp
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(10.dp)) {
 
             CachedAsyncImage(
                 imageUrl = video.thumbnail,
@@ -41,23 +41,23 @@ fun HomeVideoCardItem(video: Video,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(
                 text = video.title,
                 color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Text(
                 text = video.duration,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

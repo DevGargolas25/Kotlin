@@ -24,7 +24,7 @@ import com.example.brigadist.R
 import com.example.brigadist.ui.theme.DeepPurple
 import com.example.brigadist.ui.theme.LightAqua
 
-enum class Destination { Home, Chat, Map, Videos, Emergency }
+enum class Destination { Home, Chat, Map, Videos, News, Emergency }
 
 @Composable
 fun BrBottomBar(
