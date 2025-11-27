@@ -7,16 +7,18 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.brigadist.data.FirebaseNewsAdapter
+import com.example.brigadist.ui.news.data.repository.NewsRepository
 import com.example.brigadist.ui.news.model.News
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val firebaseNewsAdapter = FirebaseNewsAdapter()
+    private val newsRepository = NewsRepository(application.applicationContext)
     private val connectivityManager = application.getSystemService(Application.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     private val _news = MutableStateFlow<List<News>>(emptyList())
@@ -37,8 +39,18 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     init {
         setupConnectivityMonitoring()
         
+        // Load initial data from local database first (fast, works offline)
+        viewModelScope.launch(Dispatchers.IO) {
+            val localNews = newsRepository.getNewsSync()
+            withContext(Dispatchers.Main) {
+                _news.value = localNews
+                _filteredNews.value = localNews
+            }
+        }
+        
+        // Then subscribe to repository updates (Firebase when online, local when offline)
         viewModelScope.launch {
-            firebaseNewsAdapter.getNews().collect {
+            newsRepository.getNews().collect {
                 _news.value = it
                 _filteredNews.value = it
             }
