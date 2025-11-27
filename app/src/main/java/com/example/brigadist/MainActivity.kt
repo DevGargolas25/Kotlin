@@ -96,13 +96,28 @@ class MainActivity : ComponentActivity() {
                 
                 // Check userType for existing credentials
                 user?.let { currentUser ->
-                    val orquestador = Orquestador(currentUser, this@MainActivity, isOfflineMode = false)
-                    // Wait a moment for Firebase data to load, then check userType
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        val userType = orquestador.getUserType().lowercase()
-                        isAnalyticsUser = userType == "analytics" || userType == "analitics"
-                        isBrigadistUser = userType == "brigadist"
-                    }, 1000) // 1 second delay to allow Firebase to load
+                    // First, try to get stored user type (works offline)
+                    val storedUserType = offlineCredentialsManager.getStoredUserType()?.lowercase()
+                    if (storedUserType != null && storedUserType.isNotEmpty()) {
+                        // Use stored user type immediately (works offline)
+                        isAnalyticsUser = storedUserType == "analytics" || storedUserType == "analitics"
+                        isBrigadistUser = storedUserType == "brigadist"
+                    }
+                    
+                    // If online, also try to get from Firebase to update stored value
+                    if (isOnline) {
+                        val orquestador = Orquestador(currentUser, this@MainActivity, isOfflineMode = false)
+                        // Wait a moment for Firebase data to load, then check userType
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            val userType = orquestador.getUserType().lowercase()
+                            if (userType.isNotEmpty()) {
+                                isAnalyticsUser = userType == "analytics" || userType == "analitics"
+                                isBrigadistUser = userType == "brigadist"
+                                // Save user type for offline use
+                                offlineCredentialsManager.saveUserType(userType)
+                            }
+                        }, 1000) // 1 second delay to allow Firebase to load
+                    }
                 }
             }
 
@@ -202,6 +217,8 @@ class MainActivity : ComponentActivity() {
                             val userType = orquestador.getUserType().lowercase()
                             isAnalyticsUser = userType == "analytics" || userType == "analitics"
                             isBrigadistUser = userType == "brigadist"
+                            // Save user type for offline use
+                            offlineCredentialsManager.saveUserType(userType)
                             
                             // Check if offline password is set up, if not, prompt to set it
                             if (!offlineCredentialsManager.hasOfflineCredentials()) {
@@ -271,6 +288,11 @@ class MainActivity : ComponentActivity() {
             )
             isOfflineMode = true
             offlineLoginError = null
+            
+            // Retrieve stored user type for offline mode
+            val storedUserType = offlineCredentialsManager.getStoredUserType()?.lowercase() ?: ""
+            isAnalyticsUser = storedUserType == "analytics" || storedUserType == "analitics"
+            isBrigadistUser = storedUserType == "brigadist"
         } else {
             offlineLoginError = "Invalid credentials"
         }
