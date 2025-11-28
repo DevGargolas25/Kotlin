@@ -1,7 +1,19 @@
 package com.example.brigadist.ui.brigadist
 
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.DisposableEffect
@@ -167,60 +179,176 @@ fun BrigadistHomeScreen(
     // Use the state holder for Firebase listeners and location tracking
     val homeState = rememberBrigadistHomeState(context, brigadistEmail)
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        HomeNotificationBar(
-            text = "HomeScreen",
-            onBellClick = { /* Notifications placeholder */ },
-            onMenuClick = onMenuClick
-        )
-        Spacer(Modifier.height(8.dp))
+    // Connectivity monitoring
+    var isOnline by remember { mutableStateOf(true) }
+    var showOfflineAlert by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
         
-        // Emergency table
-        if (homeState.hasInProgressEmergency) {
-            Text(
-                text = "Emergency In Progress",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp)
-            )
-        } else {
-            Text(
-                text = "Unattended Emergencies",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp)
-            )
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOnline = true
+            }
+            
+            override fun onLost(network: Network) {
+                isOnline = false
+                // Show alert when going offline and there are no emergencies
+                if (homeState.emergencies.isEmpty()) {
+                    showOfflineAlert = true
+                }
+            }
+            
+            override fun onCapabilitiesChanged(
+                network: Network,
+                networkCapabilities: NetworkCapabilities
+            ) {
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                isOnline = hasInternet
+                // Show/hide alert based on connectivity and emergency list
+                if (!hasInternet && homeState.emergencies.isEmpty()) {
+                    showOfflineAlert = true
+                } else if (hasInternet) {
+                    showOfflineAlert = false
+                }
+            }
         }
         
-        if (homeState.emergencies.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+        
+        // Check initial connectivity
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
+        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        isOnline = hasInternet
+        if (!hasInternet && homeState.emergencies.isEmpty()) {
+            showOfflineAlert = true
+        }
+    }
+    
+    // Update alert visibility when emergencies list changes
+    LaunchedEffect(homeState.emergencies.size) {
+        if (homeState.emergencies.isEmpty() && !isOnline) {
+            showOfflineAlert = true
+        } else if (homeState.emergencies.isNotEmpty()) {
+            showOfflineAlert = false
+        }
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            HomeNotificationBar(
+                text = "HomeScreen",
+                onBellClick = { /* Notifications placeholder */ },
+                onMenuClick = onMenuClick
+            )
+            Spacer(Modifier.height(8.dp))
+            
+            // Emergency table
+            if (homeState.hasInProgressEmergency) {
                 Text(
-                    text = if (homeState.hasInProgressEmergency) 
-                        "No emergency in progress" 
-                    else 
-                        "No unattended emergencies",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
+                    text = "Emergency In Progress",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                Text(
+                    text = "Unattended Emergencies",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(16.dp)
                 )
             }
-        } else {
-            EmergencyTable(
-                emergencies = homeState.emergencies,
-                brigadistLocation = homeState.brigadistLocation,
-                brigadistEmail = brigadistEmail,
-                emergencyRepository = homeState.emergencyRepository,
-                onEmergencyAttended = {
-                    // Emergency status updated, will trigger re-fetch
-                },
-                onEmergencySelected = onEmergencySelected
-            )
+            
+            if (homeState.emergencies.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (homeState.hasInProgressEmergency) 
+                            "No emergency in progress" 
+                        else 
+                            "No unattended emergencies",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                EmergencyTable(
+                    emergencies = homeState.emergencies,
+                    brigadistLocation = homeState.brigadistLocation,
+                    brigadistEmail = brigadistEmail,
+                    emergencyRepository = homeState.emergencyRepository,
+                    isOnline = isOnline,
+                    onEmergencyAttended = {
+                        // Emergency status updated, will trigger re-fetch
+                    },
+                    onEmergencySelected = onEmergencySelected
+                )
+            }
+        }
+        
+        // Offline alert when no emergencies
+        AnimatedVisibility(
+            visible = showOfflineAlert,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 60.dp, start = 16.dp, end = 16.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WifiOff,
+                        contentDescription = "No Internet",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Please connect to the internet to see active emergencies",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = { showOfflineAlert = false },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

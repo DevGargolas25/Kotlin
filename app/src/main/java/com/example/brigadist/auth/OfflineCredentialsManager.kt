@@ -28,12 +28,15 @@ class OfflineCredentialsManager(context: Context) {
      * Stores offline credentials for a user.
      * Creates a secure hash of email + password.
      */
-    fun saveOfflineCredentials(email: String, password: String) {
+    fun saveOfflineCredentials(email: String, password: String, userType: String? = null) {
         val credentialHash = hashCredentials(email, password)
         sharedPreferences.edit().apply {
             putString(KEY_EMAIL, email)
             putString(KEY_CREDENTIAL_HASH, credentialHash)
             putBoolean(KEY_HAS_OFFLINE_CREDENTIALS, true)
+            if (userType != null) {
+                putString(KEY_USER_TYPE, userType)
+            }
             apply()
         }
     }
@@ -75,6 +78,23 @@ class OfflineCredentialsManager(context: Context) {
     }
     
     /**
+     * Gets the stored user type for offline authentication.
+     */
+    fun getStoredUserType(): String? {
+        return sharedPreferences.getString(KEY_USER_TYPE, null)
+    }
+    
+    /**
+     * Saves the user type for offline authentication.
+     */
+    fun saveUserType(userType: String) {
+        sharedPreferences.edit().apply {
+            putString(KEY_USER_TYPE, userType)
+            apply()
+        }
+    }
+    
+    /**
      * Clears all offline credentials.
      */
     fun clearOfflineCredentials() {
@@ -95,6 +115,7 @@ class OfflineCredentialsManager(context: Context) {
         private const val KEY_EMAIL = "email"
         private const val KEY_CREDENTIAL_HASH = "credential_hash"
         private const val KEY_HAS_OFFLINE_CREDENTIALS = "has_offline_credentials"
+        private const val KEY_USER_TYPE = "user_type"
     }
 }
 

@@ -1,9 +1,19 @@
 package com.example.brigadist.ui.brigadist
 
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -45,6 +55,67 @@ fun BrigadistEmergencyScreen(
     var showResolveConfirmation by remember { mutableStateOf(false) }
     var showEmergencyResolvedByUserDialog by remember { mutableStateOf(false) }
     var isResolvingByBrigadist by remember { mutableStateOf(false) }
+    var isOnline by remember { mutableStateOf(true) }
+    var showOfflineAlert by remember { mutableStateOf(false) }
+    var showOfflineResolveAlert by remember { mutableStateOf(false) }
+    
+    // Connectivity monitoring
+    LaunchedEffect(Unit) {
+        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+        
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOnline = true
+                showOfflineAlert = false
+            }
+            
+            override fun onLost(network: Network) {
+                isOnline = false
+                if (selectedEmergency != null) {
+                    showOfflineAlert = true
+                }
+            }
+            
+            override fun onCapabilitiesChanged(
+                network: Network,
+                networkCapabilities: NetworkCapabilities
+            ) {
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                isOnline = hasInternet
+                if (!hasInternet && selectedEmergency != null) {
+                    showOfflineAlert = true
+                } else if (hasInternet) {
+                    showOfflineAlert = false
+                }
+            }
+        }
+        
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        
+        connectivityManager.registerNetworkCallback(networkRequest, callback)
+        
+        // Check initial connectivity
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
+        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        isOnline = hasInternet
+        if (!hasInternet && selectedEmergency != null) {
+            showOfflineAlert = true
+        }
+    }
+    
+    // Update alert visibility when emergency selection changes
+    LaunchedEffect(selectedEmergency) {
+        if (selectedEmergency != null && !isOnline) {
+            showOfflineAlert = true
+        } else if (selectedEmergency == null) {
+            showOfflineAlert = false
+        }
+    }
     
     // Auto-select in-progress emergency if none is selected
     // This runs whenever selectedEmergency changes (including when it's null)
@@ -204,21 +275,26 @@ fun BrigadistEmergencyScreen(
                 SelectEmergencyMessage()
             } else {
                 // Show information based on emergency type
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    // Emergency header card
-                    emergency?.let {
-                        EmergencyHeaderCard(
-                            emergency = it,
-                            onResolveClick = {
-                                showResolveConfirmation = true
-                            }
-                        )
-                    }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        // Emergency header card
+                        emergency?.let {
+                            EmergencyHeaderCard(
+                                emergency = it,
+                                onResolveClick = {
+                                    if (!isOnline) {
+                                        showOfflineResolveAlert = true
+                                    } else {
+                                        showResolveConfirmation = true
+                                    }
+                                }
+                            )
+                        }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
@@ -373,6 +449,62 @@ fun BrigadistEmergencyScreen(
                             }
                         }
                     }
+                    }
+                }
+                
+                // Offline alert banner when viewing emergency (overlay on top)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, start = 16.dp, end = 16.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    AnimatedVisibility(
+                        visible = showOfflineAlert,
+                        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+                    ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WifiOff,
+                                contentDescription = "No Internet",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = "Please connect to the internet to check on the status of the emergency",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { showOfflineAlert = false },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                    }
                 }
             }
         }
@@ -447,6 +579,26 @@ fun BrigadistEmergencyScreen(
                     }
                 ) {
                     Text("Return to Home")
+                }
+            }
+        )
+    }
+    
+    // Offline alert when trying to resolve emergency
+    if (showOfflineResolveAlert) {
+        AlertDialog(
+            onDismissRequest = { showOfflineResolveAlert = false },
+            title = {
+                Text("No Internet Connection")
+            },
+            text = {
+                Text("Please connect to the internet to change the status of the emergency.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showOfflineResolveAlert = false }
+                ) {
+                    Text("OK")
                 }
             }
         )

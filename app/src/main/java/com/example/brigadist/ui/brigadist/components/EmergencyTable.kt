@@ -21,6 +21,7 @@ fun EmergencyTable(
     brigadistLocation: LatLng?,
     brigadistEmail: String,
     emergencyRepository: EmergencyRepository,
+    isOnline: Boolean = true,
     onEmergencyAttended: () -> Unit,
     onEmergencySelected: (String, Emergency) -> Unit
 ) {
@@ -40,6 +41,7 @@ fun EmergencyTable(
                 brigadistLocation = brigadistLocation,
                 brigadistEmail = brigadistEmail,
                 emergencyRepository = emergencyRepository,
+                isOnline = isOnline,
                 onEmergencyAttended = onEmergencyAttended,
                 onEmergencySelected = onEmergencySelected
             )
@@ -54,10 +56,12 @@ fun EmergencyTableRow(
     brigadistLocation: LatLng?,
     brigadistEmail: String,
     emergencyRepository: EmergencyRepository,
+    isOnline: Boolean = true,
     onEmergencyAttended: () -> Unit,
     onEmergencySelected: (String, Emergency) -> Unit
 ) {
     var showConfirmationDialog by remember { mutableStateOf(false) }
+    var showOfflineAlert by remember { mutableStateOf(false) }
     
     // Memoize distance calculation with stable keys
     val distance = remember(emergency.latitude, emergency.longitude, brigadistLocation?.latitude, brigadistLocation?.longitude) {
@@ -86,8 +90,12 @@ fun EmergencyTableRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // Show confirmation dialog first
-                showConfirmationDialog = true
+                if (!isOnline) {
+                    showOfflineAlert = true
+                } else {
+                    // Show confirmation dialog first
+                    showConfirmationDialog = true
+                }
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
@@ -171,6 +179,26 @@ fun EmergencyTableRow(
                     onClick = { showConfirmationDialog = false }
                 ) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    // Offline alert dialog
+    if (showOfflineAlert) {
+        AlertDialog(
+            onDismissRequest = { showOfflineAlert = false },
+            title = {
+                Text("No Internet Connection")
+            },
+            text = {
+                Text("Please connect to the internet to change the status of the emergency.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showOfflineAlert = false }
+                ) {
+                    Text("OK")
                 }
             }
         )
