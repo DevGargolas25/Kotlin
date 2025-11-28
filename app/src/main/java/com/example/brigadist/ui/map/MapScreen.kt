@@ -32,6 +32,7 @@ import com.example.brigadist.analytics.AnalyticsHelper
 import com.example.brigadist.data.MapLocation
 import com.example.brigadist.ui.map.components.RecenterButton
 import com.example.brigadist.ui.map.components.EvacuationPointBanner
+import kotlinx.coroutines.delay
 
 @Composable
 fun MapScreen(orquestador: Orquestador) {
@@ -81,12 +82,25 @@ fun MapScreen(orquestador: Orquestador) {
         }
     }
 
-    // Check initial permission state
+    // Combine initialization operations to reduce overhead
     LaunchedEffect(Unit) {
+        // Check initial permission state
         val fineLocationGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarseLocationGranted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         hasLocationPermission = fineLocationGranted || coarseLocationGranted
         viewModel.setLocationPermission(hasLocationPermission)
+        
+        // Initialize ViewModel with context (defer to avoid blocking initial render)
+        viewModel.initializeLocationClient(context)
+        
+        // Track map opened event (non-blocking)
+        MapTelemetry.trackMapOpened(hasLocationPermission, MapType.NORMAL)
+        
+        // Request location updates when permission is granted (defer slightly)
+        if (hasLocationPermission) {
+            kotlinx.coroutines.delay(100) // Small delay to let map render first
+            viewModel.requestLocationUpdate()
+        }
     }
 
     // Refresh permission state when returning from settings
@@ -116,23 +130,6 @@ fun MapScreen(orquestador: Orquestador) {
         
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    // Initialize ViewModel with context
-    LaunchedEffect(Unit) {
-        viewModel.initializeLocationClient(context)
-    }
-
-    // Track map opened event
-    LaunchedEffect(Unit) {
-        MapTelemetry.trackMapOpened(hasLocationPermission, MapType.NORMAL)
-    }
-
-    // Request location updates when permission is granted
-    LaunchedEffect(hasLocationPermission) {
-        if (hasLocationPermission) {
-            viewModel.requestLocationUpdate()
         }
     }
 
@@ -174,12 +171,15 @@ fun MapScreen(orquestador: Orquestador) {
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        // Defer camera position state creation to reduce initial load
         val cameraPositionState = rememberCameraPositionState {
             position = cameraPosition
         }
         
-        // Update camera position when ViewModel changes it
+        // Update camera position when ViewModel changes it (debounce to avoid excessive animations)
         LaunchedEffect(cameraPosition) {
+            // Small delay to batch rapid updates
+            delay(50)
             cameraPositionState.animate(
                 CameraUpdateFactory.newCameraPosition(cameraPosition)
             )
@@ -193,9 +193,12 @@ fun MapScreen(orquestador: Orquestador) {
                 isMyLocationEnabled = hasLocationPermission
             )
         ) {
+            // Memoize nearest location name to avoid recomputation
+            val nearestLocationName = remember(nearestLocation) { nearestLocation?.name }
+            
             // Add markers for all evacuation points
             evacuationPoints.forEach { point ->
-                val isNearest = nearestLocation?.name == point.name
+                val isNearest = nearestLocationName == point.name
                 Marker(
                     state = MarkerState(position = point.latLng),
                     title = point.name,

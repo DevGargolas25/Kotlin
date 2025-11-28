@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +28,13 @@ fun BrigadistScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Cleanup Orquestador when composable is disposed
+    DisposableEffect(orquestador) {
+        onDispose {
+            orquestador.cleanup()
+        }
+    }
+    
     val context = LocalContext.current
     val emergencyPreferences = remember { EmergencyPreferences(context) }
     val brigadistEmail = orquestador.getUserProfile().email

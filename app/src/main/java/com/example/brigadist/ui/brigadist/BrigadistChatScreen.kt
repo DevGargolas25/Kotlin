@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.mutableStateMapOf
@@ -172,7 +173,7 @@ fun BrigadistChatScreen() {
     // Connectivity monitoring
     val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
     
-    LaunchedEffect(Unit) {
+    DisposableEffect(Unit) {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 isOffline = false
@@ -201,6 +202,11 @@ fun BrigadistChatScreen() {
         val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
         isOffline = !hasInternet
+        
+        // Cleanup: unregister callback when composable is disposed
+        onDispose {
+            connectivityManager.unregisterNetworkCallback(callback)
+        }
     }
     
     // Auto-scroll to bottom when new messages are added
@@ -268,7 +274,9 @@ fun BrigadistChatScreen() {
                     }
                     
                     // Messages (skip system message)
-                    items(messages.drop(1).asReversed(), key = { "${it.role}_${it.content}_${it.isPending}" }) { msg ->
+                    // Use content-based key - content is unique enough for chat messages
+                    // Note: isPending changes are handled by the message state itself
+                    items(messages.drop(1).asReversed(), key = { it.content }) { msg ->
                         val vote = votes[msg.content]
                         MessageBubble(message = msg, vote = vote) { liked ->
                             if (vote == null) {

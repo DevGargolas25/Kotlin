@@ -62,6 +62,9 @@ import androidx.compose.ui.unit.dp
 import com.auth0.android.authentication.AuthenticationAPIClient
 import com.auth0.android.authentication.storage.CredentialsManagerException
 import com.example.brigadist.ui.theme.GreenSecondary
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -101,11 +104,12 @@ class MainActivity : ComponentActivity() {
                 user?.let { currentUser ->
                     val orquestador = Orquestador(currentUser, this@MainActivity, isOfflineMode = false)
                     // Wait a moment for Firebase data to load, then check userType
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    lifecycleScope.launch {
+                        delay(1000) // 1 second delay to allow Firebase to load
                         val userType = orquestador.getUserType().lowercase()
                         isAnalyticsUser = userType == "analytics" || userType == "analitics"
                         isBrigadistUser = userType == "brigadist"
-                    }, 1000) // 1 second delay to allow Firebase to load
+                    }
                 }
             }
 
@@ -201,7 +205,8 @@ class MainActivity : ComponentActivity() {
                     user?.let { currentUser ->
                         val orquestador = Orquestador(currentUser, this@MainActivity, isOfflineMode = false)
                         // Wait a moment for Firebase data to load, then check userType
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        lifecycleScope.launch {
+                            delay(1000) // 1 second delay to allow Firebase to load
                             val userType = orquestador.getUserType().lowercase()
                             isAnalyticsUser = userType == "analytics" || userType == "analitics"
                             isBrigadistUser = userType == "brigadist"
@@ -210,7 +215,7 @@ class MainActivity : ComponentActivity() {
                             if (!offlineCredentialsManager.hasOfflineCredentials()) {
                                 showSetOfflinePassword = true
                             }
-                        }, 1000) // 1 second delay to allow Firebase to load
+                        }
                     }
                 }
             })
@@ -350,6 +355,13 @@ fun BrigadistApp(
     onReLoginClick: () -> Unit = {},
     onReLoginDismiss: () -> Unit = {}
 ) {
+    // Cleanup Orquestador when composable is disposed
+    DisposableEffect(orquestador) {
+        onDispose {
+            orquestador.cleanup()
+        }
+    }
+    
     // Collect theme state from Orchestrator's ThemeControlle
     val themeState by orquestador.themeController.themeState.collectAsState()
     val context = LocalContext.current

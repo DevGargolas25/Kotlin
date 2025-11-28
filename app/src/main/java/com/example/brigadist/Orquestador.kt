@@ -27,6 +27,8 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class Orquestador(
@@ -42,7 +44,11 @@ class Orquestador(
         null
     }
     private val profileRepository = HybridProfileRepository(context)
-    private val scope = CoroutineScope(Dispatchers.IO)
+    // Use SupervisorJob to allow cancellation and prevent leaks
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    
+    // Store listener reference for cleanup
+    private var profileListener: ValueEventListener? = null
 
     var firebaseUserProfile by mutableStateOf<FirebaseUserProfile?>(null)
         private set
@@ -59,7 +65,7 @@ class Orquestador(
     }
 
     private fun fetchUserProfile() {
-        userRef?.addValueEventListener(object : ValueEventListener {
+        profileListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val profile = snapshot.getValue(FirebaseUserProfile::class.java)
                 firebaseUserProfile = profile
@@ -79,7 +85,22 @@ class Orquestador(
                 // Handle error - try loading from local database as fallback
                 loadProfileFromLocal()
             }
-        })
+        }
+        userRef?.addValueEventListener(profileListener!!)
+    }
+    
+    /**
+     * Cleanup method to remove listeners and cancel coroutines
+     * Should be called when Orquestador is no longer needed
+     */
+    fun cleanup() {
+        // Remove Firebase listener
+        profileListener?.let { listener ->
+            userRef?.removeEventListener(listener)
+            profileListener = null
+        }
+        // Cancel coroutine scope
+        scope.cancel()
     }
 
     private fun loadProfileFromLocal() {

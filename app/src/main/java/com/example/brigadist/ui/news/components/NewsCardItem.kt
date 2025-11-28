@@ -10,6 +10,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -73,13 +74,17 @@ fun NewsCardItem(
                 // Tags - only show if there are tags
                 if (news.tags.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
+                    // Memoize filtered tags to avoid recomputation
+                    val filteredTags = remember(news.tags) {
+                        news.tags.filter { it.isNotBlank() }
+                    }
                     // Use a horizontal scrollable row for tags
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                     ) {
-                        news.tags.filter { it.isNotBlank() }.forEachIndexed { i, tag ->
+                        filteredTags.forEachIndexed { i, tag ->
                             if (i > 0) Spacer(Modifier.width(8.dp))
                             VideoTagChip(tag)
                         }
