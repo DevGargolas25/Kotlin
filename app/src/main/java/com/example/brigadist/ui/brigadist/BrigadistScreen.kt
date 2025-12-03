@@ -33,6 +33,7 @@ import com.example.brigadist.ui.home.components.HomeNotificationBar
 import com.example.brigadist.ui.news.NewsRoute
 import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.model.Emergency
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun BrigadistScreen(
@@ -286,8 +287,23 @@ fun BrigadistHomeScreen(
                     )
                 }
             } else {
+                // Sort emergencies by distance (closest first)
+                val sortedEmergencies = remember(homeState.emergencies, homeState.brigadistLocation) {
+                    if (homeState.brigadistLocation != null) {
+                        homeState.emergencies.sortedBy { (_, emergency) ->
+                            val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
+                            com.example.brigadist.utils.DistanceUtils.calculateDistance(
+                                homeState.brigadistLocation!!,
+                                emergencyLocation
+                            )
+                        }
+                    } else {
+                        homeState.emergencies
+                    }
+                }
+                
                 EmergencyTable(
-                    emergencies = homeState.emergencies,
+                    emergencies = sortedEmergencies,
                     brigadistLocation = homeState.brigadistLocation,
                     brigadistEmail = brigadistEmail,
                     emergencyRepository = homeState.emergencyRepository,
