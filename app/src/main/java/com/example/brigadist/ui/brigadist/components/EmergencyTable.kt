@@ -31,7 +31,10 @@ fun EmergencyTable(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(emergencies) { (key, emergency) ->
+        items(
+            items = emergencies,
+            key = { it.first } // Use emergency key as stable key
+        ) { (key, emergency) ->
             EmergencyTableRow(
                 emergencyKey = key,
                 emergency = emergency,
@@ -60,21 +63,27 @@ fun EmergencyTableRow(
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showOfflineAlert by remember { mutableStateOf(false) }
     
-    val distance = remember(emergency, brigadistLocation) {
+    // Memoize distance calculation with stable keys
+    val distance = remember(emergency.latitude, emergency.longitude, brigadistLocation?.latitude, brigadistLocation?.longitude) {
         brigadistLocation?.let { location ->
             val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
             DistanceUtils.calculateDistance(location, emergencyLocation)
         }
     }
     
-    val distanceText = distance?.let { DistanceUtils.formatDistance(it) } ?: "N/A"
+    // Memoize formatted distance text
+    val distanceText = remember(distance) {
+        distance?.let { DistanceUtils.formatDistance(it) } ?: "N/A"
+    }
     
-    // Get emergency type display name
-    val emergencyTypeText = when (emergency.emerType.lowercase()) {
-        "fire" -> "Fire"
-        "medical" -> "Medical"
-        "earthquake" -> "Earthquake"
-        else -> emergency.emerType
+    // Memoize emergency type display name
+    val emergencyTypeText = remember(emergency.emerType) {
+        when (emergency.emerType.lowercase()) {
+            "fire" -> "Fire"
+            "medical" -> "Medical"
+            "earthquake" -> "Earthquake"
+            else -> emergency.emerType
+        }
     }
     
     Card(
@@ -142,7 +151,7 @@ fun EmergencyTableRow(
                 Text("Attend Emergency")
             },
             text = {
-                Text("Are you sure you want to attend this ${emergency.emerType.lowercase()} emergency?")
+                Text("Are you sure you want to attend this ${emergencyTypeText.lowercase()} emergency?")
             },
             confirmButton = {
                 TextButton(

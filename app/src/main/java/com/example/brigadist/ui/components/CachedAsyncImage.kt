@@ -43,14 +43,14 @@ fun CachedAsyncImage(
     }
     
     val context = LocalContext.current
-    val isOnline = remember(imageUrl) {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    // Cache connectivity manager to avoid repeated service lookups
+    val connectivityManager = remember { context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager }
+    val isOnline = remember {
         val activeNetwork = connectivityManager.activeNetwork
         val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
         capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
-    
     // Configure image request based on online/offline status
     // When online: Always fetch from network (Coil will use network if cache is empty)
     // When offline: Use cache only

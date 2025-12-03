@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -86,7 +87,11 @@ fun VideosScreen(
         }
         item {
             Spacer(Modifier.height(12.dp))
-            val allTags = videosViewModel.videos.collectAsState().value.flatMap { it.tags }.distinct()
+            // Memoize tag extraction to avoid recomputation on every recomposition
+            val allVideos = videosViewModel.videos.collectAsState().value
+            val allTags = remember(allVideos) {
+                allVideos.flatMap { it.tags }.distinct()
+            }
             CategoryChipsRow(
                 categories = allTags,
                 selected = selectedTags,
