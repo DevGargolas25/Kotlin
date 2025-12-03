@@ -25,21 +25,8 @@ fun NewsSearchBar(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Outlined.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        placeholder = {
-            Text(
-                text = "Search news…",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
+        leadingIcon = { Icon(imageVector = Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        placeholder = { Text(text = "Search news…", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         shape = RoundedCornerShape(24.dp),
         colors = TextFieldDefaults.colors(
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -51,4 +38,3 @@ fun NewsSearchBar(
         modifier = modifier.fillMaxWidth()
     )
 }
-

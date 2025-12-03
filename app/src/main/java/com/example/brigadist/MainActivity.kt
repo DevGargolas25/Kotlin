@@ -26,6 +26,7 @@ import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.login.LoginScreen
 import com.example.brigadist.ui.map.MapScreen
+import com.example.brigadist.ui.notifications.NotificationRoute
 import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.SosModal
 import com.example.brigadist.ui.sos.SosSelectTypeModal
@@ -183,7 +184,7 @@ class MainActivity : ComponentActivity() {
                     BrigadistApp(
                         orquestador = Orquestador(user!!, this@MainActivity, isOfflineMode = isOfflineMode),
                         onLogout = { logout() },
-                        isOfflineMode = isOfflineMode,
+                        isOnline = isOnline,
                         showReLoginPrompt = showReLoginPrompt,
                         onReLoginClick = {
                             showReLoginPrompt = false
@@ -263,11 +264,11 @@ class MainActivity : ComponentActivity() {
             ) {
                 val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                         networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                val wasOffline = !isOnline
+                val wasOfflineBefore = !isOnline
                 isOnline = hasInternet
                 
                 // If we just came back online and user is in offline mode, prompt to re-login
-                if (wasOffline && isOnline && isOfflineMode && user != null) {
+                if (wasOfflineBefore && isOnline && isOfflineMode && user != null) {
                     showReLoginPrompt = true
                 }
             }
@@ -367,73 +368,27 @@ fun NoOfflineAccessScreen() {
 fun BrigadistApp(
     orquestador: Orquestador,
     onLogout: () -> Unit,
-    isOfflineMode: Boolean = false,
+    isOnline: Boolean,
     showReLoginPrompt: Boolean = false,
     onReLoginClick: () -> Unit = {},
     onReLoginDismiss: () -> Unit = {}
 ) {
-    // Collect theme state from Orchestrator's ThemeControlle
+    // Collect theme state from Orchestrator's ThemeController
     val themeState by orquestador.themeController.themeState.collectAsState()
     val context = LocalContext.current
     
     // Connectivity and pending emergency management
-    var isOffline by rememberSaveable { mutableStateOf(false) }
     var showReconnectionModal by rememberSaveable { mutableStateOf(false) }
-    var wasOffline by rememberSaveable { mutableStateOf(false) }
+    var wasOffline by rememberSaveable { mutableStateOf(!isOnline) }
     var isSyncing by rememberSaveable { mutableStateOf(false) }
     val emergencyRepository = remember { EmergencyRepository(context) }
 
-    // Connectivity monitoring
-    LaunchedEffect(Unit) {
-        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
-        
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                isOffline = false
-                // Check if we just came back online and have a pending emergency
-                if (wasOffline && emergencyRepository.hasPendingEmergencies()) {
-                    showReconnectionModal = true
-                }
-                wasOffline = false
-            }
-            
-            override fun onLost(network: Network) {
-                isOffline = true
-                wasOffline = true
-            }
-            
-            override fun onCapabilitiesChanged(
-                network: Network,
-                networkCapabilities: NetworkCapabilities
-            ) {
-                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                val wasOfflineBefore = isOffline
-                isOffline = !hasInternet
-                
-                // If we just came back online and have pending emergency
-                if (wasOfflineBefore && !isOffline && emergencyRepository.hasPendingEmergencies()) {
-                    showReconnectionModal = true
-                    wasOffline = false
-                } else if (isOffline) {
-                    wasOffline = true
-                }
-            }
+    // Show reconnection modal when coming back online with pending emergencies
+    LaunchedEffect(isOnline) {
+        if (isOnline && wasOffline && emergencyRepository.hasPendingEmergencies()) {
+            showReconnectionModal = true
         }
-        
-        val networkRequest = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-        
-        connectivityManager.registerNetworkCallback(networkRequest, callback)
-        
-        // Check initial connectivity
-        val activeNetwork = connectivityManager.activeNetwork
-        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
-        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        isOffline = !hasInternet
-        wasOffline = isOffline
+        wasOffline = !isOnline
     }
 
     // Lifecycle management for theme controller
@@ -505,6 +460,7 @@ fun BrigadistApp(
                                 onOpenProfile = { showProfile = true },
                                 onNavigateToVideos = { selected = Destination.Videos },
                                 onNavigateToNews = { selected = Destination.News },
+                                onNavigateToNotifications = { selected = Destination.Notifications },
                                 onOpenVideo = { video -> selectedVideo = video },
                                 onVideoClickFromCarousel = { video ->
                                     selectedVideo = video
@@ -539,6 +495,10 @@ fun BrigadistApp(
                                 onBack = { selectedNews = null }
                             )
                         }
+                    }
+
+                    Destination.Notifications -> {
+                        NotificationRoute(onBack = { selected = Destination.Home })
                     }
                     
                     Destination.Emergency -> {

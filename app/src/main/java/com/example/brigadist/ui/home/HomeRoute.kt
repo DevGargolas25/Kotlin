@@ -26,6 +26,7 @@ fun HomeRoute(
     onOpenProfile: () -> Unit = {},
     onNavigateToVideos: () -> Unit = {},
     onNavigateToNews: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     onVideoClickFromCarousel: (Video) -> Unit = {},
     videosViewModel: VideosViewModel = viewModel()
 ) {
@@ -65,6 +66,7 @@ fun HomeRoute(
         state = homeUiState,
         userName = userName,
         onOpenProfileSettings = onOpenProfile,
+        onShowAllNotifications = onNavigateToNotifications,
         onVideoClick = onVideoClickFromCarousel,
         onNavigateToVideos = onNavigateToVideos,
         onNavigateToNews = onNavigateToNews,

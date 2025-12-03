@@ -154,6 +154,8 @@ fun BrigadistScreen(
                 Destination.News -> {
                     NewsRoute()
                 }
+
+                Destination.Notifications -> TODO()
             }
         }
     }

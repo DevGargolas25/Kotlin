@@ -1,36 +1,28 @@
 package com.example.brigadist.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.example.brigadist.R
-import com.example.brigadist.ui.theme.DeepPurple
-import com.example.brigadist.ui.theme.LightAqua
 
-enum class Destination { Home, Chat, Map, Videos, News, Emergency }
+// The complete list of destinations
+enum class Destination {
+    Home, Chat, Map, Videos, News, Emergency, Notifications
+}
 
 @Composable
 fun BrBottomBar(
     selected: Destination,
     onSelect: (Destination) -> Unit,
-    onSosClick: () -> Unit = {},
+    onSosClick: () -> Unit,
     useEmergencyAsDestination: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -57,28 +49,24 @@ fun BrBottomBar(
             icon = { Icon(painterResource(R.drawable.ic_forum), contentDescription = "Chat") },
             label = { Text(stringResource(R.string.chat_tab_label)) }
         )
+
         // SOS or Emergency (conditional based on useEmergencyAsDestination)
         if (useEmergencyAsDestination) {
-            // Emergency as destination
+            // Emergency as destination for Brigadists
             NavigationBarItem(
                 selected = selected == Destination.Emergency,
                 onClick = { onSelect(Destination.Emergency) },
                 icon = {
                     Icon(
-                        Icons.Filled.Warning,
+                        Icons.Filled.MedicalServices,
                         contentDescription = "Emergency",
-                        tint = if (selected == Destination.Emergency) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        tint = if (selected == Destination.Emergency) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 },
-                label = { Text("SOS") },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                )
+                label = { Text("Emergency") }
             )
         } else {
-            // SOS (center action, not a destination) - existing behavior
+            // SOS action button for regular users
             NavigationBarItem(
                 selected = false,
                 onClick = onSosClick,
@@ -93,6 +81,7 @@ fun BrBottomBar(
                 alwaysShowLabel = true
             )
         }
+
         // Map
         NavigationBarItem(
             selected = selected == Destination.Map,
@@ -100,6 +89,7 @@ fun BrBottomBar(
             icon = { Icon(painterResource(R.drawable.ic_map), contentDescription = "Map") },
             label = { Text("Map") }
         )
+
         // Videos
         NavigationBarItem(
             selected = selected == Destination.Videos,
@@ -109,10 +99,3 @@ fun BrBottomBar(
         )
     }
 }
-
-// Legacy components - kept for reference but not used
-// @Composable
-// private fun BarItem(...) { ... }
-
-// @Composable  
-// fun BrSosFab(onClick: () -> Unit) { ... }

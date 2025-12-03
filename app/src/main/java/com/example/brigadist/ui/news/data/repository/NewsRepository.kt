@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import com.example.brigadist.data.FirebaseNewsAdapter
+import com.example.brigadist.ui.news.data.FirebaseNewsAdapter
 import com.example.brigadist.ui.news.data.local.NewsDatabase
 import com.example.brigadist.ui.news.data.local.entity.NewsEntity
 import com.example.brigadist.ui.news.model.News
@@ -22,85 +22,51 @@ class NewsRepository(private val context: Context) {
     private val database = NewsDatabase.getDatabase(context)
     private val dao = database.newsDao()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    
-    // SharedPreferences to track if initial load has been completed
-    private val prefs: SharedPreferences = context.getSharedPreferences(
-        "news_repository_prefs",
-        Context.MODE_PRIVATE
-    )
-    private val keyInitialLoadCompleted = "initial_load_completed"
-    
-    private fun isInitialLoadCompleted(): Boolean {
-        return prefs.getBoolean(keyInitialLoadCompleted, false)
-    }
-    
-    private fun setInitialLoadCompleted() {
-        prefs.edit().putBoolean(keyInitialLoadCompleted, true).apply()
-    }
-    
+
+    // SharedPreferences to track initial preload
+    private val prefs: SharedPreferences = context.getSharedPreferences("news_repository_prefs", Context.MODE_PRIVATE)
+    private val keyInitialLoad = "initial_load_completed"
+
+    private fun isInitialLoadCompleted(): Boolean = prefs.getBoolean(keyInitialLoad, false)
+    private fun markInitialLoad() = prefs.edit().putBoolean(keyInitialLoad, true).apply()
+
     private fun isOnline(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = connectivityManager.activeNetwork
-        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
-        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val nw = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(nw) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
-    
+
     /**
-     * Get news from Firebase if online, otherwise from local database
-     * Only stores news to local database during initial load (in preloadNews)
-     * Subsequent updates from Firebase are NOT stored locally
+     * Returns a Flow of News. If online, uses Firebase realtime updates.
+     * If offline, reads from Room local DB (initial preload).
      */
     fun getNews(): Flow<List<News>> {
         return if (isOnline()) {
-            // Online: Always fetch from Firebase
-            // Do NOT save to local database - only initial load does that
             firebaseAdapter.getNews()
         } else {
-            // Offline: Fetch from local database (only contains initial load data)
-            dao.getAllNews().map { entities ->
-                entities.map { it.toNews() }
-            }
+            dao.getAllNews().map { entities -> entities.map { it.toNews() } }
         }
     }
-    
+
     /**
-     * Preload news in background thread
-     * This should be called when the app starts
-     * Only stores news to local database during the FIRST load
-     * After initial load is complete, subsequent updates are NOT stored
+     * Preload initial snapshot from Firebase into local DB (only once).
      */
     fun preloadNews() {
         scope.launch {
             try {
                 if (isOnline() && !isInitialLoadCompleted()) {
-                    // Only do initial load if not already completed
-                    // Get the first value from Firebase and save it, then stop
-                    val newsList = firebaseAdapter.getNews().first()
-                    try {
-                        // Save initial news to local database
-                        val entities = newsList.map { NewsEntity.fromNews(it) }
-                        dao.insertAllNews(entities)
-                        
-                        // Mark initial load as completed
-                        setInitialLoadCompleted()
-                    } catch (e: Exception) {
-                        // Ignore save errors
-                    }
+                    val list = firebaseAdapter.getNews().first()
+                    val entities = list.map { NewsEntity.fromNews(it) }
+                    dao.insertAllNews(entities)
+                    markInitialLoad()
                 }
-                // If offline or initial load already completed, do nothing
-                // News are already in local database from initial load
-            } catch (e: Exception) {
-                // Handle error silently - will fallback to local data
-            }
+            } catch (_: Exception) { /* ignore */ }
         }
     }
-    
-    /**
-     * Get news synchronously from local database (for initial load)
-     */
+
     suspend fun getNewsSync(): List<News> = withContext(Dispatchers.IO) {
         dao.getAllNewsSync().map { it.toNews() }
     }
 }
-
