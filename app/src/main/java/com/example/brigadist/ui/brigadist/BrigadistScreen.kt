@@ -33,6 +33,10 @@ import com.example.brigadist.ui.home.components.HomeNotificationBar
 import com.example.brigadist.ui.news.NewsRoute
 import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.model.Emergency
+import com.example.brigadist.ui.videos.VideosRoute
+import com.example.brigadist.ui.videos.VideoDetailScreen
+import com.example.brigadist.ui.videos.model.Video
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun BrigadistScreen(
@@ -54,6 +58,7 @@ fun BrigadistScreen(
     var selected by rememberSaveable { mutableStateOf(Destination.Home) }
     var showProfile by rememberSaveable { mutableStateOf(false) }
     var selectedEmergency by remember { mutableStateOf<Pair<String, Emergency>?>(null) }
+    var selectedVideo by remember { mutableStateOf<Video?>(null) }
     
     // Load saved emergency on startup (works offline)
     LaunchedEffect(Unit) {
@@ -76,6 +81,7 @@ fun BrigadistScreen(
                 onSelect = { dest ->
                     selected = dest
                     showProfile = false // Close profile when navigating to any destination
+                    if (dest != Destination.Videos) selectedVideo = null // Clear selected video when leaving Videos tab
                 },
                 useEmergencyAsDestination = true,
                 onSosClick = {} // Not used when useEmergencyAsDestination is true
@@ -146,17 +152,10 @@ fun BrigadistScreen(
                     )
                 }
                 Destination.Videos -> {
-                    // Videos screen placeholder
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Videos feature coming soon",
-                            style = MaterialTheme.typography.headlineMedium,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                    if (selectedVideo == null) {
+                        VideosRoute(onVideoClick = { video -> selectedVideo = video })
+                    } else {
+                        VideoDetailScreen(video = selectedVideo!!, onBack = { selectedVideo = null })
                     }
                 }
                 Destination.News -> {
@@ -286,8 +285,23 @@ fun BrigadistHomeScreen(
                     )
                 }
             } else {
+                // Sort emergencies by distance (closest first)
+                val sortedEmergencies = remember(homeState.emergencies, homeState.brigadistLocation) {
+                    if (homeState.brigadistLocation != null) {
+                        homeState.emergencies.sortedBy { (_, emergency) ->
+                            val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
+                            com.example.brigadist.utils.DistanceUtils.calculateDistance(
+                                homeState.brigadistLocation!!,
+                                emergencyLocation
+                            )
+                        }
+                    } else {
+                        homeState.emergencies
+                    }
+                }
+                
                 EmergencyTable(
-                    emergencies = homeState.emergencies,
+                    emergencies = sortedEmergencies,
                     brigadistLocation = homeState.brigadistLocation,
                     brigadistEmail = brigadistEmail,
                     emergencyRepository = homeState.emergencyRepository,
