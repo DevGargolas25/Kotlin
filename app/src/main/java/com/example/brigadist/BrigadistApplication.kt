@@ -1,9 +1,7 @@
 package com.example.brigadist
 
 import android.app.Application
-import android.content.ComponentCallbacks2
 import com.example.brigadist.cache.ImageCacheManager
-import com.example.brigadist.cache.VideoCacheManager
 import com.example.brigadist.ui.news.data.repository.NewsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

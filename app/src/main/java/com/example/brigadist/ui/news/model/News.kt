@@ -8,6 +8,7 @@ data class News(
     val title: String = "",
     val description: String = "",
     val imageUrl: String = "",
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val usefulCount: Int = 0,
+    val notUsefulCount: Int = 0
 )
-

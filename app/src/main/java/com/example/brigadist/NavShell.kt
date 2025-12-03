@@ -20,6 +20,7 @@ import com.example.brigadist.ui.components.BrBottomBar
 import com.example.brigadist.ui.components.Destination
 import com.example.brigadist.ui.home.HomeRoute
 import com.example.brigadist.ui.map.MapScreen
+import com.example.brigadist.ui.notifications.NotificationRoute
 import com.example.brigadist.ui.profile.ui.profile.ProfileScreen
 import com.example.brigadist.ui.sos.SosConfirmationModal
 import com.example.brigadist.ui.sos.SosModal
@@ -156,6 +157,7 @@ fun NavShell(
                                 },    // <<< navigate to Profile
                                 onNavigateToVideos = { selected = Destination.Videos },
                                 onNavigateToNews = { selected = Destination.News },
+                                onNavigateToNotifications = { selected = Destination.Notifications },
                                 onOpenVideo = { video -> selectedVideo = video }
                             )
                         } else {
@@ -191,6 +193,10 @@ fun NavShell(
                         }
                     }
                     
+                    Destination.Notifications -> {
+                        NotificationRoute(onBack = { selected = Destination.Home })
+                    }
+
                     Destination.Emergency -> {
                         // Emergency destination (used in Brigadist view)
                         // Regular users use SOS button instead

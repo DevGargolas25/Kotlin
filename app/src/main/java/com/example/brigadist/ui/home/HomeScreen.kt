@@ -7,7 +7,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.WifiOff
@@ -15,14 +17,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.brigadist.ui.home.components.HomeLearnOnYourOwnSection
 import com.example.brigadist.ui.home.components.HomeNotificationBar
 import com.example.brigadist.ui.home.components.HomeJoinBrigadeCard
 import com.example.brigadist.ui.home.components.HomeNewsCard
 import com.example.brigadist.ui.home.model.HomeUiState
+import com.example.brigadist.ui.notifications.data.repository.NotificationRepository
+import com.example.brigadist.ui.notifications.model.Notification
 import com.example.brigadist.ui.videos.model.Video
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 @Composable
 fun HomeScreen(
@@ -38,6 +45,21 @@ fun HomeScreen(
     showOfflineAlert: Boolean = false,
     onDismissOfflineAlert: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val notificationRepo = remember { NotificationRepository(context) }
+
+    // Sample realistic notifications in English
+    val realisticNotifications = remember {
+        listOf(
+            "Earthquake Alert" to "A 5.8 magnitude earthquake has been detected. Stay calm and find a safe place.",
+            "High Temperatures" to "Heatwave: Temperatures are expected to exceed 35°C (95°F). Stay hydrated and avoid sun exposure.",
+            "Flood Warning" to "Heavy rainfall in the area. Risk of flash floods. Seek higher ground.",
+            "Strong Winds" to "Wind gusts of up to 80 km/h (50 mph) are forecasted. Secure loose objects outdoors.",
+            "Extreme UV Index" to "The UV index is extreme. Use sunscreen, a hat, and sunglasses if you need to go outside."
+        )
+    }
+
     LaunchedEffect(state.notifications) {
         while (true) { delay(10_000); onTickNotification() }
     }
@@ -47,7 +69,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(bottom = 80.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             val banner = state.notifications.getOrNull(state.currentNotificationIndex).orEmpty()
 
@@ -76,6 +98,27 @@ fun HomeScreen(
             )
             Spacer(Modifier.height(8.dp))
             HomeNewsCard(onVisitNewsFeed = onNavigateToNews)
+
+            // Test button to create a realistic notification
+            Button(
+                onClick = {
+                    scope.launch {
+                        val (title, message) = realisticNotifications.random()
+                        val newNotification = Notification(
+                            id = UUID.randomUUID().toString(),
+                            title = title,
+                            message = message,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        notificationRepo.addNotification(newNotification)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text("Create Test Notification")
+            }
         }
 
         // Non-intrusive offline alert at the top

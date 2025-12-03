@@ -9,6 +9,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.brigadist.ui.news.data.repository.NewsRepository
 import com.example.brigadist.ui.news.model.News
+import com.example.brigadist.util.VoteLimiter
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +22,7 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val newsRepository = NewsRepository(application.applicationContext)
     private val connectivityManager = application.getSystemService(Application.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val firebaseDb = FirebaseDatabase.getInstance().reference.child("news")
 
     private val _news = MutableStateFlow<List<News>>(emptyList())
     val news = _news.asStateFlow()
@@ -32,14 +35,14 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedTags = MutableStateFlow<Set<String>>(emptySet())
     val selectedTags = _selectedTags.asStateFlow()
-    
+
     private val _isOffline = MutableStateFlow(false)
     val isOffline = _isOffline.asStateFlow()
 
     init {
         setupConnectivityMonitoring()
-        
-        // Load initial data from local database first (fast, works offline)
+
+        // preload local initial data (fast) - repository handles initial load policy
         viewModelScope.launch(Dispatchers.IO) {
             val localNews = newsRepository.getNewsSync()
             withContext(Dispatchers.Main) {
@@ -47,43 +50,37 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
                 _filteredNews.value = localNews
             }
         }
-        
-        // Then subscribe to repository updates (Firebase when online, local when offline)
+
+        // subscribe to repository (Firebase when online, local fallback when offline)
         viewModelScope.launch {
-            newsRepository.getNews().collect {
-                _news.value = it
-                _filteredNews.value = it
+            newsRepository.getNews().collect { list ->
+                _news.value = list
+                filterAndApply(list)
             }
         }
+
+        // trigger preload (repository's preload stores initial DB snapshot if needed)
+        newsRepository.preloadNews()
     }
-    
+
     private fun setupConnectivityMonitoring() {
         val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                _isOffline.value = false
-            }
-            
-            override fun onLost(network: Network) {
-                _isOffline.value = true
-            }
-            
-            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            override fun onAvailable(network: Network) { _isOffline.value = false }
+            override fun onLost(network: Network) { _isOffline.value = true }
+            override fun onCapabilitiesChanged(network: Network, nc: NetworkCapabilities) {
+                val hasInternet = nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
                 _isOffline.value = !hasInternet
             }
         }
-        
         val networkRequest = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-        
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
         connectivityManager.registerNetworkCallback(networkRequest, callback)
-        
-        // Check initial connectivity
-        val activeNetwork = connectivityManager.activeNetwork
-        val capabilities = activeNetwork?.let { connectivityManager.getNetworkCapabilities(it) }
-        val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+
+        // Check initial connectivity safely
+        val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+        val hasInternet = capabilities != null &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
         _isOffline.value = !hasInternet
     }
@@ -95,25 +92,46 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onTagSelected(tag: String) {
         _selectedTags.update {
-            if (it.contains(tag)) {
-                it - tag
-            } else {
-                it + tag
-            }
+            if (it.contains(tag)) it - tag else it + tag
         }
         filterNews()
     }
 
-    private fun filterNews() {
-        val searchText = _searchText.value.lowercase()
-        val selectedTags = _selectedTags.value
+    private fun filterAndApply(list: List<News>) {
+        _filteredNews.value = list // default; then apply search+tags
+        filterNews()
+    }
 
-        _filteredNews.value = _news.value.filter { newsItem ->
-            val matchesSearchText = newsItem.title.lowercase().contains(searchText) ||
-                    newsItem.description.lowercase().contains(searchText)
-            val matchesTags = selectedTags.isEmpty() || newsItem.tags.any { it in selectedTags }
-            matchesSearchText && matchesTags
+    private fun filterNews() {
+        val search = _searchText.value.lowercase()
+        val tags = _selectedTags.value
+
+        _filteredNews.value = _news.value.filter { n ->
+            val matchesText = n.title.lowercase().contains(search) || n.description.lowercase().contains(search)
+            val matchesTags = tags.isEmpty() || n.tags.any { it in tags }
+            matchesText && matchesTags
+        }
+    }
+
+    // Voting API exposed to UI
+
+    fun hasUserVoted(newsId: String, context: Application = getApplication()): Boolean {
+        return VoteLimiter.hasVoted(context.applicationContext, newsId)
+    }
+
+    fun voteNews(newsId: String, wasUseful: Boolean, context: Application = getApplication()) {
+        val appCtx = context.applicationContext
+        if (VoteLimiter.hasVoted(appCtx, newsId)) return
+
+        // increment the correct counter atomically: read current -> set current + 1
+        val childKey = if (wasUseful) "usefulCount" else "notUsefulCount"
+        firebaseDb.child(newsId).child(childKey).get().addOnSuccessListener { snapshot ->
+            val current = snapshot.getValue(Int::class.java) ?: 0
+            firebaseDb.child(newsId).child(childKey).setValue(current + 1)
+            // persist local vote limiter
+            VoteLimiter.saveVote(appCtx, newsId)
+        }.addOnFailureListener {
+            // optionally: could enqueue for retry, show snackbar, etc.
         }
     }
 }
-

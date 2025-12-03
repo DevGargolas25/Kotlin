@@ -33,7 +33,6 @@ fun NewsCardItem(
         modifier = modifier.fillMaxWidth()
     ) {
         Column {
-            // Image - only show if imageUrl is not empty
             if (news.imageUrl.isNotBlank()) {
                 CachedAsyncImage(
                     imageUrl = news.imageUrl,
@@ -46,9 +45,7 @@ fun NewsCardItem(
                 )
             }
 
-            // Info block
             Column(Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 14.dp)) {
-                // Title
                 if (news.title.isNotBlank()) {
                     Text(
                         text = news.title,
@@ -59,7 +56,6 @@ fun NewsCardItem(
 
                 Spacer(Modifier.height(10.dp))
 
-                // Description
                 if (news.description.isNotBlank()) {
                     Text(
                         text = news.description,
@@ -70,15 +66,9 @@ fun NewsCardItem(
                     )
                 }
 
-                // Tags - only show if there are tags
                 if (news.tags.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
-                    // Use a horizontal scrollable row for tags
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         news.tags.filter { it.isNotBlank() }.forEachIndexed { i, tag ->
                             if (i > 0) Spacer(Modifier.width(8.dp))
                             VideoTagChip(tag)
@@ -89,4 +79,3 @@ fun NewsCardItem(
         }
     }
 }
-
