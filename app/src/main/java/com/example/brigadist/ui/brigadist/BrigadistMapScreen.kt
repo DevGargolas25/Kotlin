@@ -204,7 +204,7 @@ fun BrigadistMapScreen(
             )
             
             // Show banner for closest emergency
-            closestEmergency?.let { (_, emergency) ->
+            closestEmergency?.let { (emergencyKey, emergency) ->
                 val distance = brigadistLocation?.let { location ->
                     val emergencyLocation = LatLng(emergency.latitude, emergency.longitude)
                     calculateDistance(location, emergencyLocation)
@@ -214,8 +214,12 @@ fun BrigadistMapScreen(
                 
                 EmergencyMapBanner(
                     emergency = emergency,
+                    emergencyKey = emergencyKey,
                     distance = distance,
                     etaMinutes = etaMinutes,
+                    brigadistEmail = brigadistEmail,
+                    emergencyRepository = emergencyRepository,
+                    isInProgress = hasInProgressEmergency,
                     onNavigateClick = {
                         openWalkingDirections(context, emergency)
                     },
@@ -244,13 +248,19 @@ fun BrigadistMapScreen(
 @Composable
 fun EmergencyMapBanner(
     emergency: Emergency,
+    emergencyKey: String,
     distance: Double?,
     etaMinutes: Int?,
+    brigadistEmail: String,
+    emergencyRepository: EmergencyRepository,
+    isInProgress: Boolean,
     onNavigateClick: () -> Unit,
     onViewOnMapClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val distanceText = distance?.let { formatDistance(it) } ?: "N/A"
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    var isAttending by remember { mutableStateOf(false) }
     
     Card(
         modifier = modifier,
@@ -300,6 +310,32 @@ fun EmergencyMapBanner(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Show "Attend" button only for unattended emergencies
+            if (!isInProgress && emergency.status == "Unattended") {
+                Button(
+                    onClick = { showConfirmationDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isAttending,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    if (isAttending) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Attending...")
+                    } else {
+                        Text("Attend Emergency")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -330,6 +366,53 @@ fun EmergencyMapBanner(
                 }
             }
         }
+    }
+    
+    // Confirmation dialog for attending emergency
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = {
+                Text("Attend Emergency")
+            },
+            text = {
+                Text("Are you sure you want to attend this ${emergency.emerType.lowercase()} emergency? This will mark you as the assigned brigadist.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmationDialog = false
+                        isAttending = true
+                        
+                        // Update emergency status and assign brigadist
+                        emergencyRepository.updateEmergencyStatus(
+                            emergencyKey = emergencyKey,
+                            newStatus = "In progress",
+                            brigadistEmail = brigadistEmail,
+                            onSuccess = {
+                                isAttending = false
+                                // Status will be updated automatically via Firebase listeners
+                            },
+                            onError = { error ->
+                                isAttending = false
+                                // Could show an error message here
+                            }
+                        )
+                    },
+                    enabled = !isAttending
+                ) {
+                    Text("Attend")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showConfirmationDialog = false },
+                    enabled = !isAttending
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
