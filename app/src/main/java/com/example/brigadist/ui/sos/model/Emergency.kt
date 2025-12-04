@@ -21,6 +21,8 @@ data class Emergency(
     var userId: String = "",
     @get:PropertyName("ChatUsed")
     @set:PropertyName("ChatUsed")
-    var ChatUsed: Boolean = false
+    var ChatUsed: Boolean = false,
+    var timeToInProgress: Long? = null,  // Time in milliseconds from creation to "In progress"
+    var timeToResolved: Long? = null     // Time in milliseconds from "In progress" to "Resolved"
 )
 

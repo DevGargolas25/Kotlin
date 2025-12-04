@@ -80,7 +80,7 @@ object EmergencyActions {
 
                 val now = System.currentTimeMillis()
                 val emergency = Emergency(
-                    EmerResquestTime = 0,
+                    EmerResquestTime = now,  // Set to current time for proper tracking
                     assignedBrigadistId = "",
                     createdAt = now,
                     date_time = formatDateTime(),
@@ -109,7 +109,7 @@ object EmergencyActions {
                 // Location unavailable, create emergency with default coordinates
                 val now = System.currentTimeMillis()
                 val emergency = Emergency(
-                    EmerResquestTime = 0,
+                    EmerResquestTime = now,  // Set to current time for proper tracking
                     assignedBrigadistId = "",
                     createdAt = now,
                     date_time = formatDateTime(),
@@ -139,7 +139,7 @@ object EmergencyActions {
             // Location permission denied, create emergency with default coordinates
             val now = System.currentTimeMillis()
             val emergency = Emergency(
-                EmerResquestTime = 0,
+                EmerResquestTime = now,  // Set to current time for proper tracking
                 assignedBrigadistId = "",
                 createdAt = now,
                 date_time = formatDateTime(),
