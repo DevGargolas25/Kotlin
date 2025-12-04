@@ -26,6 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.example.brigadist.Orquestador
 import com.example.brigadist.data.EmergencyRepository
 import com.example.brigadist.data.prefs.EmergencyPreferences
@@ -65,14 +68,20 @@ fun BrigadistEmergencyScreen(
         
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                isOnline = true
-                showOfflineAlert = false
+                // Explicitly switch to Main dispatcher for UI state updates
+                CoroutineScope(Dispatchers.Main).launch {
+                    isOnline = true
+                    showOfflineAlert = false
+                }
             }
             
             override fun onLost(network: Network) {
-                isOnline = false
-                if (selectedEmergency != null) {
-                    showOfflineAlert = true
+                // Explicitly switch to Main dispatcher for UI state updates
+                CoroutineScope(Dispatchers.Main).launch {
+                    isOnline = false
+                    if (selectedEmergency != null) {
+                        showOfflineAlert = true
+                    }
                 }
             }
             
@@ -80,13 +89,18 @@ fun BrigadistEmergencyScreen(
                 network: Network,
                 networkCapabilities: NetworkCapabilities
             ) {
+                // Check capabilities on current thread (already background)
                 val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                         networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                isOnline = hasInternet
-                if (!hasInternet && selectedEmergency != null) {
-                    showOfflineAlert = true
-                } else if (hasInternet) {
-                    showOfflineAlert = false
+                
+                // Explicitly switch to Main dispatcher for UI state updates
+                CoroutineScope(Dispatchers.Main).launch {
+                    isOnline = hasInternet
+                    if (!hasInternet && selectedEmergency != null) {
+                        showOfflineAlert = true
+                    } else if (hasInternet) {
+                        showOfflineAlert = false
+                    }
                 }
             }
         }
@@ -128,6 +142,8 @@ fun BrigadistEmergencyScreen(
             listener = emergencyRepository.listenToEmergenciesByStatus(
                 listOf("In progress")
             ) { emergencyList ->
+                // Note: EmergencyRepository now handles switching to Main dispatcher
+                // This callback is already on Main thread thanks to repository changes
                 if (!hasSelected) {
                     val assignedInProgress = emergencyList.filter { (_, emergency) ->
                         emergency.assignedBrigadistId == brigadistEmail &&
@@ -154,6 +170,9 @@ fun BrigadistEmergencyScreen(
     DisposableEffect(selectedEmergency) {
         if (selectedEmergency != null) {
             val listener = emergencyRepository.listenToEmergencyByKey(selectedEmergency.first) { emergency ->
+                // Note: EmergencyRepository now handles switching to Main dispatcher
+                // This callback is already on Main thread thanks to repository changes
+                
                 // Check if emergency was resolved by the user (not by this brigadist)
                 // Only show dialog if we didn't initiate the resolve action ourselves
                 if (emergency?.status == "Resolved" && !isResolvingByBrigadist) {

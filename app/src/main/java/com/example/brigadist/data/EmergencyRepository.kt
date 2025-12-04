@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.example.brigadist.cache.EmergencyCacheManager
+import com.example.brigadist.data.local.EmergencyDatabase
+import com.example.brigadist.data.local.entity.EmergencyEntity
 import com.example.brigadist.ui.sos.model.Emergency
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -12,10 +14,13 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class EmergencyRepository(private val context: Context? = null) {
     private val database = FirebaseDatabase.getInstance().getReference("Emergency")
     private val emergencyCache = context?.let { EmergencyCacheManager.getInstance(it) }
+    private val localDatabase = context?.let { EmergencyDatabase.getDatabase(it) }
+    private val localDao = localDatabase?.emergencyDao()
 
     /**
      * Checks if device is currently online.
@@ -75,7 +80,10 @@ class EmergencyRepository(private val context: Context? = null) {
         val pushKey = pushRef.key ?: ""
         pushRef.setValue(emergencyWithId)
             .addOnSuccessListener {
-                onSuccess(pushKey)
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onSuccess(pushKey)
+                }
             }
             .addOnFailureListener { exception ->
                 // If Firebase write fails, cache it for retry
@@ -84,7 +92,10 @@ class EmergencyRepository(private val context: Context? = null) {
                         emergencyCache.cacheEmergency(emergencyWithId)
                     }
                 }
-                onError(exception.message ?: "Error al crear la emergencia")
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(exception.message ?: "Error al crear la emergencia")
+                }
             }
     }
     
@@ -101,7 +112,10 @@ class EmergencyRepository(private val context: Context? = null) {
         
         CoroutineScope(Dispatchers.IO).launch {
             val result = emergencyCache.syncPendingEmergencies()
-            onComplete(result.successCount, result.failureCount, result.totalCount)
+            // Explicitly switch to Main dispatcher for UI callback
+            withContext(Dispatchers.Main) {
+                onComplete(result.successCount, result.failureCount, result.totalCount)
+            }
         }
     }
     
@@ -122,8 +136,18 @@ class EmergencyRepository(private val context: Context? = null) {
             "chatUsed" to null  // Remove lowercase field if it exists
         )
         database.child(emergencyKey).updateChildren(updates)
-            .addOnSuccessListener { onComplete() }
-            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update ChatUsed") }
+            .addOnSuccessListener {
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onComplete()
+                }
+            }
+            .addOnFailureListener { ex ->
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(ex.message ?: "Failed to update ChatUsed")
+                }
+            }
     }
 
     /**
@@ -138,19 +162,48 @@ class EmergencyRepository(private val context: Context? = null) {
     ): ValueEventListener {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val emergencies = mutableListOf<Pair<String, Emergency>>()
-                for (child in snapshot.children) {
-                    val emergency = child.getValue(Emergency::class.java)
-                    val key = child.key ?: continue
-                    if (emergency != null && emergency.status in statuses) {
-                        emergencies.add(Pair(key, emergency))
+                // Process data on IO dispatcher
+                CoroutineScope(Dispatchers.IO).launch {
+                    val emergencies = mutableListOf<Pair<String, Emergency>>()
+                    for (child in snapshot.children) {
+                        val emergency = child.getValue(Emergency::class.java)
+                        val key = child.key ?: continue
+                        if (emergency != null && emergency.status in statuses) {
+                            emergencies.add(Pair(key, emergency))
+                            
+                            // Save to Room database for offline access
+                            try {
+                                val entity = EmergencyEntity.fromEmergency(key, emergency)
+                                localDao?.insertEmergency(entity)
+                            } catch (e: Exception) {
+                                // Log error but don't fail the operation
+                            }
+                        }
+                    }
+                    // Switch to Main dispatcher for UI callback
+                    withContext(Dispatchers.Main) {
+                        onEmergencyUpdate(emergencies)
                     }
                 }
-                onEmergencyUpdate(emergencies)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error silently or log it
+                // Fallback to local database when Firebase fails
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val localEmergencies = localDao?.getEmergenciesByStatusSync(statuses)
+                            ?.map { Pair(it.emergencyKey, it.toEmergency()) }
+                            ?: emptyList()
+                        withContext(Dispatchers.Main) {
+                            onEmergencyUpdate(localEmergencies)
+                        }
+                    } catch (e: Exception) {
+                        // If local DB also fails, return empty list
+                        withContext(Dispatchers.Main) {
+                            onEmergencyUpdate(emptyList())
+                        }
+                    }
+                }
             }
         }
         database.addValueEventListener(listener)
@@ -213,12 +266,33 @@ class EmergencyRepository(private val context: Context? = null) {
                 }
                 
                 database.child(emergencyKey).updateChildren(updates)
-                    .addOnSuccessListener { onSuccess() }
-                    .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
+                    .addOnSuccessListener {
+                        // Update local database as well for offline support
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                localDao?.updateEmergencyStatus(emergencyKey, newStatus, brigadistEmail, currentTime)
+                            } catch (e: Exception) {
+                                // Log error but don't fail the operation
+                            }
+                        }
+                        // Explicitly switch to Main dispatcher for UI callback
+                        CoroutineScope(Dispatchers.Main).launch {
+                            onSuccess()
+                        }
+                    }
+                    .addOnFailureListener { ex ->
+                        // Explicitly switch to Main dispatcher for UI callback
+                        CoroutineScope(Dispatchers.Main).launch {
+                            onError(ex.message ?: "Failed to update emergency status")
+                        }
+                    }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                onError(error.message ?: "Failed to read emergency data")
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(error.message ?: "Failed to read emergency data")
+                }
             }
         })
     }
@@ -252,12 +326,25 @@ class EmergencyRepository(private val context: Context? = null) {
                 }
                 
                 database.child(emergencyKey).updateChildren(updates)
-                    .addOnSuccessListener { onSuccess() }
-                    .addOnFailureListener { ex -> onError(ex.message ?: "Failed to resolve emergency") }
+                    .addOnSuccessListener {
+                        // Explicitly switch to Main dispatcher for UI callback
+                        CoroutineScope(Dispatchers.Main).launch {
+                            onSuccess()
+                        }
+                    }
+                    .addOnFailureListener { ex ->
+                        // Explicitly switch to Main dispatcher for UI callback
+                        CoroutineScope(Dispatchers.Main).launch {
+                            onError(ex.message ?: "Failed to resolve emergency")
+                        }
+                    }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                onError(error.message ?: "Failed to read emergency data")
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(error.message ?: "Failed to read emergency data")
+                }
             }
         })
     }
@@ -275,12 +362,40 @@ class EmergencyRepository(private val context: Context? = null) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val emergency = snapshot.getValue(Emergency::class.java)
-                onEmergencyUpdate(emergency)
+                
+                // Save to local database if not null
+                if (emergency != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val entity = EmergencyEntity.fromEmergency(emergencyKey, emergency)
+                            localDao?.insertEmergency(entity)
+                        } catch (e: Exception) {
+                            // Log error but don't fail the operation
+                        }
+                    }
+                }
+                
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onEmergencyUpdate(emergency)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error - return null to indicate error
-                onEmergencyUpdate(null)
+                // Handle error - try to get from local database as fallback
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val localEmergency = localDao?.getEmergencyByKey(emergencyKey)?.toEmergency()
+                        withContext(Dispatchers.Main) {
+                            onEmergencyUpdate(localEmergency)
+                        }
+                    } catch (e: Exception) {
+                        // If local DB also fails, return null
+                        withContext(Dispatchers.Main) {
+                            onEmergencyUpdate(null)
+                        }
+                    }
+                }
             }
         }
         database.child(emergencyKey).addValueEventListener(listener)
@@ -298,11 +413,17 @@ class EmergencyRepository(private val context: Context? = null) {
         database.child(emergencyKey).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val emergency = snapshot.getValue(Emergency::class.java)
-                onSuccess(emergency)
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onSuccess(emergency)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                onError(error.message ?: "Failed to get emergency")
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(error.message ?: "Failed to get emergency")
+                }
             }
         })
     }
@@ -312,6 +433,44 @@ class EmergencyRepository(private val context: Context? = null) {
      */
     fun removeListener(listener: ValueEventListener) {
         database.removeEventListener(listener)
+    }
+    
+    /**
+     * Get emergencies from local database (for offline access)
+     * @param statuses List of statuses to filter
+     * @return List of emergency pairs (key, emergency)
+     */
+    suspend fun getEmergenciesFromLocal(statuses: List<String>): List<Pair<String, Emergency>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                localDao?.getEmergenciesByStatusSync(statuses)
+                    ?.map { Pair(it.emergencyKey, it.toEmergency()) }
+                    ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+    
+    /**
+     * Get emergencies assigned to a specific brigadist from local database
+     * @param brigadistEmail The brigadist's email
+     * @param status The emergency status
+     * @return List of emergency pairs (key, emergency)
+     */
+    suspend fun getEmergenciesByBrigadistFromLocal(
+        brigadistEmail: String,
+        status: String
+    ): List<Pair<String, Emergency>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                localDao?.getEmergenciesByBrigadist(brigadistEmail, status)
+                    ?.map { Pair(it.emergencyKey, it.toEmergency()) }
+                    ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
     }
 }
 
