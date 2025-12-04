@@ -12,6 +12,7 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class EmergencyRepository(private val context: Context? = null) {
     private val database = FirebaseDatabase.getInstance().getReference("Emergency")
@@ -75,7 +76,10 @@ class EmergencyRepository(private val context: Context? = null) {
         val pushKey = pushRef.key ?: ""
         pushRef.setValue(emergencyWithId)
             .addOnSuccessListener {
-                onSuccess(pushKey)
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onSuccess(pushKey)
+                }
             }
             .addOnFailureListener { exception ->
                 // If Firebase write fails, cache it for retry
@@ -84,7 +88,10 @@ class EmergencyRepository(private val context: Context? = null) {
                         emergencyCache.cacheEmergency(emergencyWithId)
                     }
                 }
-                onError(exception.message ?: "Error al crear la emergencia")
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(exception.message ?: "Error al crear la emergencia")
+                }
             }
     }
     
@@ -101,7 +108,10 @@ class EmergencyRepository(private val context: Context? = null) {
         
         CoroutineScope(Dispatchers.IO).launch {
             val result = emergencyCache.syncPendingEmergencies()
-            onComplete(result.successCount, result.failureCount, result.totalCount)
+            // Explicitly switch to Main dispatcher for UI callback
+            withContext(Dispatchers.Main) {
+                onComplete(result.successCount, result.failureCount, result.totalCount)
+            }
         }
     }
     
@@ -122,8 +132,18 @@ class EmergencyRepository(private val context: Context? = null) {
             "chatUsed" to null  // Remove lowercase field if it exists
         )
         database.child(emergencyKey).updateChildren(updates)
-            .addOnSuccessListener { onComplete() }
-            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update ChatUsed") }
+            .addOnSuccessListener {
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onComplete()
+                }
+            }
+            .addOnFailureListener { ex ->
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(ex.message ?: "Failed to update ChatUsed")
+                }
+            }
     }
 
     /**
@@ -138,15 +158,21 @@ class EmergencyRepository(private val context: Context? = null) {
     ): ValueEventListener {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val emergencies = mutableListOf<Pair<String, Emergency>>()
-                for (child in snapshot.children) {
-                    val emergency = child.getValue(Emergency::class.java)
-                    val key = child.key ?: continue
-                    if (emergency != null && emergency.status in statuses) {
-                        emergencies.add(Pair(key, emergency))
+                // Process data on IO dispatcher
+                CoroutineScope(Dispatchers.IO).launch {
+                    val emergencies = mutableListOf<Pair<String, Emergency>>()
+                    for (child in snapshot.children) {
+                        val emergency = child.getValue(Emergency::class.java)
+                        val key = child.key ?: continue
+                        if (emergency != null && emergency.status in statuses) {
+                            emergencies.add(Pair(key, emergency))
+                        }
+                    }
+                    // Switch to Main dispatcher for UI callback
+                    withContext(Dispatchers.Main) {
+                        onEmergencyUpdate(emergencies)
                     }
                 }
-                onEmergencyUpdate(emergencies)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -178,8 +204,18 @@ class EmergencyRepository(private val context: Context? = null) {
             "updatedAt" to System.currentTimeMillis()
         )
         database.child(emergencyKey).updateChildren(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
+            .addOnSuccessListener {
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onSuccess()
+                }
+            }
+            .addOnFailureListener { ex ->
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(ex.message ?: "Failed to update emergency status")
+                }
+            }
     }
     
     /**
@@ -198,8 +234,18 @@ class EmergencyRepository(private val context: Context? = null) {
             "updatedAt" to System.currentTimeMillis()
         )
         database.child(emergencyKey).updateChildren(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to resolve emergency") }
+            .addOnSuccessListener {
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onSuccess()
+                }
+            }
+            .addOnFailureListener { ex ->
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(ex.message ?: "Failed to resolve emergency")
+                }
+            }
     }
 
     /**
@@ -215,12 +261,18 @@ class EmergencyRepository(private val context: Context? = null) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val emergency = snapshot.getValue(Emergency::class.java)
-                onEmergencyUpdate(emergency)
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onEmergencyUpdate(emergency)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
                 // Handle error - return null to indicate error
-                onEmergencyUpdate(null)
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onEmergencyUpdate(null)
+                }
             }
         }
         database.child(emergencyKey).addValueEventListener(listener)
@@ -238,11 +290,17 @@ class EmergencyRepository(private val context: Context? = null) {
         database.child(emergencyKey).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val emergency = snapshot.getValue(Emergency::class.java)
-                onSuccess(emergency)
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onSuccess(emergency)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                onError(error.message ?: "Failed to get emergency")
+                // Explicitly switch to Main dispatcher for UI callback
+                CoroutineScope(Dispatchers.Main).launch {
+                    onError(error.message ?: "Failed to get emergency")
+                }
             }
         })
     }
