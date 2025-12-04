@@ -9,7 +9,11 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * State holder for BrigadistHomeScreen that manages Firebase listeners and location updates.
@@ -54,6 +58,42 @@ class BrigadistHomeState(
     fun setupFirebaseListeners() {
         // Use a local variable to track in-progress state between callbacks
         var currentHasInProgress = false
+        
+        // Load from local database first if offline
+        if (!emergencyRepository.isOnline()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // Try to load in-progress emergencies first
+                    val localInProgress = emergencyRepository.getEmergenciesByBrigadistFromLocal(
+                        brigadistEmail,
+                        "In progress"
+                    ).filter { (_, emergency) ->
+                        emergency.latitude != 0.0 && emergency.longitude != 0.0
+                    }
+                    
+                    if (localInProgress.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            hasInProgressEmergency = true
+                            emergencies = localInProgress
+                        }
+                    } else {
+                        // If no in-progress, load unattended
+                        val localUnattended = emergencyRepository.getEmergenciesFromLocal(
+                            listOf("Unattended")
+                        ).filter { (_, emergency) ->
+                            emergency.latitude != 0.0 && emergency.longitude != 0.0
+                        }
+                        
+                        withContext(Dispatchers.Main) {
+                            hasInProgressEmergency = false
+                            emergencies = localUnattended
+                        }
+                    }
+                } catch (e: Exception) {
+                    // If local DB fails, listeners will handle it
+                }
+            }
+        }
         
         // Check for "In progress" emergencies assigned to this brigadist
         inProgressListener = emergencyRepository.listenToEmergenciesByStatus(
