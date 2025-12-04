@@ -172,14 +172,55 @@ class EmergencyRepository(private val context: Context? = null) {
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        val updates = mapOf(
-            "status" to newStatus,
-            "assignedBrigadistId" to brigadistEmail,
-            "updatedAt" to System.currentTimeMillis()
-        )
-        database.child(emergencyKey).updateChildren(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
+        // First, read the current emergency to calculate time differences
+        database.child(emergencyKey).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val emergency = snapshot.getValue(Emergency::class.java)
+                val currentTime = System.currentTimeMillis()
+                
+                val updates = mutableMapOf<String, Any?>(
+                    "status" to newStatus,
+                    "assignedBrigadistId" to brigadistEmail,
+                    "updatedAt" to currentTime,
+                    "brigadistID" to null  // Remove placeholder brigadistID if it exists
+                )
+                
+                if (emergency != null) {
+                    when (newStatus) {
+                        "In progress" -> {
+                            // Calculate time from creation to "In progress"
+                            // Use EmerResquestTime if available, otherwise use createdAt
+                            val emergencyCreationTime = if (emergency.EmerResquestTime > 0) {
+                                emergency.EmerResquestTime
+                            } else {
+                                emergency.createdAt
+                            }
+                            
+                            if (emergencyCreationTime > 0) {
+                                val timeToInProgress = currentTime - emergencyCreationTime
+                                updates["timeToInProgress"] = timeToInProgress
+                            }
+                        }
+                        "Resolved" -> {
+                            // Calculate time from "In progress" to "Resolved"
+                            // Use updatedAt as the time when it was marked "In progress"
+                            if (emergency.status == "In progress" && emergency.updatedAt > 0) {
+                                val timeToResolved = currentTime - emergency.updatedAt
+                                updates["timeToResolved"] = timeToResolved
+                            }
+                        }
+                    }
+                }
+                
+                database.child(emergencyKey).updateChildren(updates)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { ex -> onError(ex.message ?: "Failed to update emergency status") }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                onError(error.message ?: "Failed to read emergency data")
+            }
+        })
     }
     
     /**
@@ -193,13 +234,32 @@ class EmergencyRepository(private val context: Context? = null) {
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        val updates = mapOf(
-            "status" to "Resolved",
-            "updatedAt" to System.currentTimeMillis()
-        )
-        database.child(emergencyKey).updateChildren(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { ex -> onError(ex.message ?: "Failed to resolve emergency") }
+        // First, read the current emergency to calculate time to resolved
+        database.child(emergencyKey).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val emergency = snapshot.getValue(Emergency::class.java)
+                val currentTime = System.currentTimeMillis()
+                
+                val updates = mutableMapOf<String, Any?>(
+                    "status" to "Resolved",
+                    "updatedAt" to currentTime
+                )
+                
+                // Calculate time from "In progress" to "Resolved"
+                if (emergency != null && emergency.status == "In progress" && emergency.updatedAt > 0) {
+                    val timeToResolved = currentTime - emergency.updatedAt
+                    updates["timeToResolved"] = timeToResolved
+                }
+                
+                database.child(emergencyKey).updateChildren(updates)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { ex -> onError(ex.message ?: "Failed to resolve emergency") }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                onError(error.message ?: "Failed to read emergency data")
+            }
+        })
     }
 
     /**
